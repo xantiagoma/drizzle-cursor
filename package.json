@@ -1,0 +1,49 @@
+{
+  "name": "drizzle-cursor",
+  "version": "0.0.1",
+  "description": "Utils for Drizzle ORM cursor based pagination",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "release": "pnpm run build && changeset publish",
+    "lint": "tsc",
+    "db:generate": "drizzle-kit generate:sqlite",
+    "db:migrate": "tsx src/lib/db/migrate.ts",
+    "db:drop": "drizzle-kit drop",
+    "db:pull": "drizzle-kit introspect:sqlite",
+    "db:push": "drizzle-kit push:sqlite",
+    "db:studio": "drizzle-kit studio",
+    "db:check": "drizzle-kit check:sqlite",
+    "test:example": "tsx test/example.ts"
+  },
+  "keywords": [
+    "drizzle",
+    "orm",
+    "pagination",
+    "cursor",
+    "drizzle-orm",
+    "base64",
+    "multiple cursors"
+  ],
+  "author": "Santiago Montoya <xantiagoma@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "drizzle-orm": "^0.28.6"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.26.2",
+    "@types/better-sqlite3": "^7.6.4",
+    "@types/node": "^20.5.9",
+    "better-sqlite3": "^8.6.0",
+    "dotenv": "^16.3.1",
+    "drizzle-kit": "^0.19.13",
+    "tsup": "^7.2.0",
+    "tsx": "^3.12.8",
+    "typescript": "^5.2.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

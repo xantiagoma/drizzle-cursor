@@ -1,0 +1,156 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": "",
+  "version": "5",
+  "dialect": "sqlite",
+  "tables": {
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": false
+        },
+        "first_name": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "first_name",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "middle_name": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "middle_name",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "last_name",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "phone",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "email",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "address",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "postalZip": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "postalZip",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "region",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "country",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "list": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "list",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "numberrange": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "numberrange",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currency": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "currency",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alphanumeric": {
+          "autoincrement": false,
+          "name": "alphanumeric",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "born_day": {
+          "autoincrement": false,
+          "name": "born_day",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "marital_status": {
+          "default": "(NULL)",
+          "autoincrement": false,
+          "name": "marital_status",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  }
+}

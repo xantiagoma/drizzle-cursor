@@ -1,0 +1,27 @@
+{
+  "version": "5",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1694144036548,
+      "tag": "0000_white_dust",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1694145211936,
+      "tag": "0001_ancient_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1694146585617,
+      "tag": "0002_dizzy_arachne",
+      "breakpoints": true
+    }
+  ]
+}
