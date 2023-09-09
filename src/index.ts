@@ -14,7 +14,7 @@ export const generateCursor = (
   lastPreviousItemData?: Record<string, any>
 ) => {
   const orderBy: Array<SQL> = [];
-  for (const { order, schema } of [...cursors, primaryCursor]) {
+  for (const { order = "ASC", schema } of [...cursors, primaryCursor]) {
     const fn = order === "ASC" ? asc : desc;
     const sql = fn(schema);
     orderBy.push(sql);
@@ -34,7 +34,7 @@ export const generateCursor = (
     const ands: Array<SQL> = [];
     for (const cursor of posibilities) {
       const lastValue = cursor === posibilities?.at(-1);
-      const { order, schema, key } = cursor;
+      const { order = "ASC", schema, key } = cursor;
       const fn = order === "ASC" ? gt : lt;
       const sql = !lastValue
         ? eq(schema, lastPreviousItemData[key])
