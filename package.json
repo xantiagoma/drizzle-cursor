@@ -9,6 +9,7 @@
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "release": "pnpm run build && changeset publish",
     "lint": "tsc",
+    "test": "vitest",
     "generate:changelog": "changeset",
     "generate:version": "changeset version",
     "db:generate": "drizzle-kit generate:sqlite",
@@ -43,7 +44,8 @@
     "drizzle-kit": "^0.19.13",
     "tsup": "^7.2.0",
     "tsx": "^3.12.8",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.4"
   },
   "publishConfig": {
     "access": "public"
