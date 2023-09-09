@@ -1,6 +1,6 @@
 {
   "name": "drizzle-cursor",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Utils for Drizzle ORM cursor based pagination",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -9,6 +9,8 @@
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "release": "pnpm run build && changeset publish",
     "lint": "tsc",
+    "generate:changelog": "changeset",
+    "generate:version": "changeset version",
     "db:generate": "drizzle-kit generate:sqlite",
     "db:migrate": "tsx src/lib/db/migrate.ts",
     "db:drop": "drizzle-kit drop",
