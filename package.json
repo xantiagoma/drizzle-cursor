@@ -29,7 +29,7 @@
   ],
   "author": "Santiago Montoya <xantiagoma@gmail.com>",
   "license": "MIT",
-  "dependencies": {
+  "peerDependencies": {
     "drizzle-orm": "^0.28.6"
   },
   "devDependencies": {
