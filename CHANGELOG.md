@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.3.1
+
+### Patch Changes
+
+- Add documentation on README
+
 ## 0.3.0
 
 ### Minor Changes

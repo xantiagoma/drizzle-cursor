@@ -1,10 +1,31 @@
 # drizzle-cursor
 
-Utils to generate cursor based pagination on Drizzle ORM
+Utils to generate cursor based pagination for [`drizzle-orm`](https://github.com/drizzle-team/drizzle-orm)
+
+| :zap: Supports *any* number of cursors.  |
+|------------------------------------------|
 
 Check example at: [test/example.ts](./test/example.ts)
 
-Use like:
+## Installation
+
+```sh
+npm install drizzle-cursor
+```
+
+> [!NOTE]
+>
+> Check types at [`TSDocs`](https://tsdocs.dev/docs/drizzle-cursor/latest/index.html)
+>
+
+## Usage
+
+First create a cursor with `generateCursor` listing the Primary-key and the n-other cursors.
+
+> [!WARNING]
+>
+> The order of the `cursors` matters because it's the way they are going to take in account on the generated SQL-query
+>
 
 ```ts
 const cursorConfig: CursorConfig = {
@@ -17,7 +38,16 @@ const cursorConfig: CursorConfig = {
 };
 
 const cursor = generateCursor(cursorConfig);
+```
 
+Pass `...cursor.orderBy` to `.orderBy` and `cursor.where()` to `.where` on `db.select` chained methods (also works with `db.query`).
+
+> [!IMPORTANT] 
+>
+> for the first batch of results `cursor.where()` is empty,
+>
+
+```ts
 const page1 = await db
   .select({
     lastName: schema.users.lastName,
@@ -29,15 +59,25 @@ const page1 = await db
   .orderBy(...cursor.orderBy) // Always include the order
   .where(cursor.where()) // .where() is called empty the first time, meaning "there's not previous records"
   .limit(page_size);
+```
 
+For the sub-sequent queries you can send the last previous record on `cursor.where`
+
+```ts
 const page2 = await db
   .select() // .select() can vary while includes the needed data to create next curso (the same as the tables listed in primaryCursor and cursors)
   .from(schema.users)
   .orderBy(...cursor.orderBy)
   .where(cursor.where(page1.at(-1))) // last record of previous query (or any record "before: the one you want to start with)
   .limit(page_size);
+```
 
+or the token of the item (useful to send/receive from the FE)
+
+```ts
 const lastToken = cursor.serialize(page2.at(-1)); // use serialize method/function to send tokens to your FE
+
+// if you want to convert back the token to a object:
 const lastItem = cursor.parse(lastToken); // use parse method/function to transform back in an object
 
 const page3 = await db.query.users.findMany({
