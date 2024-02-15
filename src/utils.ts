@@ -7,3 +7,14 @@ export function generateSubArrays<T>(arr: ReadonlyArray<T>): T[][] {
   }
   return subArrays;
 }
+
+/**
+ * Encodes a string of data using base-64 encoding.
+ */
+export const atob = (data: string) => Buffer.from(data, 'base64').toString('utf-8')
+
+
+/**
+ * Decodes a string of data which has been encoded using base-64 encoding.
+ */
+export const btoa = (str:string) => Buffer.from(str, 'utf-8').toString('base64')

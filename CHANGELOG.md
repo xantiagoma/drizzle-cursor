@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.3.0
+
+### Minor Changes
+
+- change parse/serialize to encode/decode Base UTF-8 with `Buffer` instead of built-in atob/btoa
+
 ## 0.2.1
 
 ### Patch Changes
