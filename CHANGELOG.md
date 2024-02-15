@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.2.0
+
+### Minor Changes
+
+- Update drizzle-orm and devDependencies, also add `db:seed` and fix test example.
+
 ## 0.1.0
 
 ### Minor Changes
