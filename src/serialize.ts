@@ -1,6 +1,7 @@
 import "@total-typescript/ts-reset";
 
 import type { CursorConfig } from "./types";
+import { btoa } from "./utils";
 
 export function serialize<
   T extends Record<string, unknown> = Record<string, unknown>

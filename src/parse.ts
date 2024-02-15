@@ -1,6 +1,7 @@
 import "@total-typescript/ts-reset";
 
 import type { CursorConfig } from "./types";
+import { atob } from "./utils";
 
 export function parse<
   T extends Record<string, unknown> = Record<string, unknown>
