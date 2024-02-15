@@ -26,6 +26,8 @@ First create a cursor with `generateCursor` listing the Primary-key and the n-ot
 >
 > The order of the `cursors` matters because it's the way they are going to take in account on the generated SQL-query
 >
+> Is **not recommended** to use *nullable-columns* for your cursors, it depends on your RDBMS how it handles them.
+>
 
 ```ts
 const cursorConfig: CursorConfig = {
@@ -95,3 +97,13 @@ const page3 = await db.query.users.findMany({
 });
 
 ```
+
+## Contributing
+
+Submit an Issue with a minimal reproducible example.
+
+> PRs are welcome
+
+## License
+
+MIT / Do whatever you want.

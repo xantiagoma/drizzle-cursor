@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.3.2
+
+### Patch Changes
+
+- add Licence to README
+
 ## 0.3.1
 
 ### Patch Changes
