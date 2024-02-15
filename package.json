@@ -33,7 +33,7 @@
   "author": "Santiago Montoya <xantiagoma@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "drizzle-orm": "^0.28.6"
+    "drizzle-orm": "^0.29.3"
   },
   "devDependencies": {
     "@changesets/cli": "^2.26.2",
