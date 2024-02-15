@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.2.1
+
+### Patch Changes
+
+- Add docs and date tests
+
 ## 0.2.0
 
 ### Minor Changes
