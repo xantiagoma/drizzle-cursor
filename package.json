@@ -1,6 +1,6 @@
 {
   "name": "drizzle-cursor",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Utils for Drizzle ORM cursor based pagination",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -20,7 +20,8 @@
     "db:push": "drizzle-kit push:sqlite",
     "db:studio": "drizzle-kit studio",
     "db:check": "drizzle-kit check:sqlite",
-    "test:example": "tsx test/example.ts"
+    "test:example": "tsx test/example.ts",
+    "test:example:sqlite": "tsx test/example.sqlite.ts"
   },
   "keywords": [
     "drizzle",
@@ -42,9 +43,11 @@
     "@total-typescript/ts-reset": "^0.5.1",
     "@types/better-sqlite3": "^7.6.9",
     "@types/node": "^20.11.17",
+    "base-x": "^4.0.0",
     "better-sqlite3": "^9.4.1",
     "dotenv": "^16.4.4",
     "drizzle-kit": "^0.20.14",
+    "superjson": "^2.2.1",
     "tsup": "^8.0.2",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",

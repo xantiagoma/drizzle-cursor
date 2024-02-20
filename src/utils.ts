@@ -9,12 +9,31 @@ export function generateSubArrays<T>(arr: ReadonlyArray<T>): T[][] {
 }
 
 /**
- * Encodes a string of data using base-64 encoding.
+ * decoder: similar to `atob()` but compatible with UTF-8 strings
+ * converts a base64 encoded string to a UTF-8 string
+ * @link https://developer.mozilla.org/en-US/docs/Web/API/atob
  */
-export const atob = (data: string) => Buffer.from(data, 'base64').toString('utf-8')
-
+export const decoder = (data: string) =>
+  Buffer.from(data, "base64").toString("utf-8");
 
 /**
- * Decodes a string of data which has been encoded using base-64 encoding.
+ * encoder: similar to `btoa()` but compatible with UTF-8 strings
+ * converts a UTF-8 string to a base64 encoded string
+ * @link https://developer.mozilla.org/en-US/docs/Web/API/btoa
  */
-export const btoa = (str:string) => Buffer.from(str, 'utf-8').toString('base64')
+export const encoder = (str: string) =>
+  Buffer.from(str, "utf-8").toString("base64");
+
+/**
+ * parser: similar to `JSON.parse()`
+ * converts a JSON string to a JavaScript object
+ * @link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse
+ */
+export const parser = JSON.parse;
+
+/**
+ * serializer: similar to `JSON.stringify()`
+ * converts a JavaScript object to a JSON string
+ * @link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify
+ */
+export const serializer = JSON.stringify;
