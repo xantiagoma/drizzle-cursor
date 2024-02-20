@@ -1,20 +1,82 @@
 import { SQL, and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 
 import type { CursorConfig } from "./types";
-import { generateSubArrays } from "./utils";
-import { parse } from "./parse";
-import { serialize } from "./serialize";
+import {
+  generateSubArrays,
+  decoder as _decoder,
+  encoder as _encoder,
+  parser as _parser,
+  serializer as _serializer,
+} from "./utils";
+import { parse as _parse } from "./parse";
+import { serialize as _serialize } from "./serialize";
 
-export const generateCursor = (config: CursorConfig) => {
+export const generateCursor = (
+  config: CursorConfig,
+  options?: {
+    /**
+     * decoder: similar to `atob()` but compatible with UTF-8 strings
+     * converts a base64 encoded string to a UTF-8 string
+     * @link https://developer.mozilla.org/en-US/docs/Web/API/atob
+     */
+    decoder?: typeof _decoder;
+
+    /**
+     * encoder: similar to `btoa()` but compatible with UTF-8 strings
+     * converts a UTF-8 string to a base64 encoded string
+     * @link https://developer.mozilla.org/en-US/docs/Web/API/btoa
+     */
+    encoder?: typeof _encoder;
+
+    /**
+     * parser: similar to `JSON.parse()`
+     * converts a JSON string to a JavaScript object
+     * @link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse
+     */
+    parser?: typeof _parser;
+
+    /**
+     * serializer: similar to `JSON.stringify()`
+     * converts a JavaScript object to a JSON string
+     * @link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify
+     */
+    serializer?: typeof _serializer;
+
+    /**
+     * parse:
+     * takes a cursor and returns a JavaScript object
+     * useful to retrive object from the FE client token
+     */
+    parse?: typeof _parse;
+
+    /**
+     * serialize:
+     * takes a JavaScript object and returns a cursor
+     * useful to generate token to the FE client
+     */
+    serialize?: typeof _serialize;
+  }
+) => {
   const { cursors = [], primaryCursor } = config;
+  const {
+    decoder = _decoder,
+    encoder = _encoder,
+    parser = _parser,
+    serializer = _serializer,
+    parse = _parse,
+    serialize = _serialize,
+  } = options ?? {};
+
   const orderBy: Array<SQL> = [];
   for (const { order = "ASC", schema } of [...cursors, primaryCursor]) {
     const fn = order === "ASC" ? asc : desc;
     const sql = fn(schema);
     orderBy.push(sql);
   }
+
   return {
     orderBy,
+
     where: (lastPreviousItemData?: Record<string, unknown> | string | null) => {
       if (!lastPreviousItemData) {
         return undefined;
@@ -22,7 +84,7 @@ export const generateCursor = (config: CursorConfig) => {
 
       const data =
         typeof lastPreviousItemData === "string"
-          ? parse(config, lastPreviousItemData)
+          ? parse(config, lastPreviousItemData, decoder, parser)
           : lastPreviousItemData;
 
       if (!data) {
@@ -53,9 +115,11 @@ export const generateCursor = (config: CursorConfig) => {
 
       return where;
     },
-    parse: (cursor: string) => parse(config, cursor),
+
+    parse: (cursor: string | null) => parse(config, cursor, decoder, parser),
+
     serialize: (data?: Record<string, unknown> | null) =>
-      serialize(config, data),
+      serialize(config, data, encoder, serializer),
   };
 };
 

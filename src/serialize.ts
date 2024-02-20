@@ -1,13 +1,20 @@
 import "@total-typescript/ts-reset";
 
 import type { CursorConfig } from "./types";
-import { btoa } from "./utils";
+import { encoder as _encoder, serializer as _serializer } from "./utils";
 
+/**
+ * serialize:
+ * takes a JavaScript object and returns a cursor
+ * useful to generate token to the FE client
+ */
 export function serialize<
   T extends Record<string, unknown> = Record<string, unknown>
 >(
   { primaryCursor, cursors = [] }: CursorConfig,
-  data?: T | null
+  data?: T | null,
+  encoder = _encoder,
+  serializer = _serializer
 ): string | null {
   if (!data) {
     return null;
@@ -20,7 +27,7 @@ export function serialize<
     return acc;
   }, {} as Record<string, unknown>);
 
-  return btoa(JSON.stringify(item));
+  return encoder(serializer(item));
 }
 
 export default serialize;

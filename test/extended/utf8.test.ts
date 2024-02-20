@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { atob as customAtoB, btoa as customBtoA} from "../../src/utils";
+import { decoder as customAtoB, encoder as customBtoA} from "../../src/utils";
 const {atob: globalAtoB, btoa: globalBtoA } = global;
 
 describe("utf8", () => {

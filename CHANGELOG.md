@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.4.0
+
+### Minor Changes
+
+- Add `options` to `generateCursor` so `decoder`, `encoder`, `parser`, `serializer`, `parse` and `serialize` can be customized enabling custom cursor tokens.
+
 ## 0.3.2
 
 ### Patch Changes
