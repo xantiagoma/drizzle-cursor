@@ -6,7 +6,7 @@ settings:
 
 dependencies:
   drizzle-orm:
-    specifier: ^0.29.3
+    specifier: '>= 0.29.1 < 1'
     version: 0.29.3(@types/better-sqlite3@7.6.9)(better-sqlite3@9.4.1)
 
 devDependencies:
