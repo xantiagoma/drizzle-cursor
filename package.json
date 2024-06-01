@@ -1,6 +1,6 @@
 {
   "name": "drizzle-cursor",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Utils for Drizzle ORM cursor based pagination",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -35,7 +35,7 @@
   "author": "Santiago Montoya <xantiagoma@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "drizzle-orm": "^0.29.3"
+    "drizzle-orm": ">= 0.29.1 < 1"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
