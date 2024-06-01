@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.4.1
+
+### Patch Changes
+
+- Update peerDependency to allow drizzle v0.30.x
+
 ## 0.4.0
 
 ### Minor Changes
