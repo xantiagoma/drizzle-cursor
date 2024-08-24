@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.5.0
+
+### Minor Changes
+
+- Update drizzle peer version and add pg test
+
 ## 0.4.1
 
 ### Patch Changes
