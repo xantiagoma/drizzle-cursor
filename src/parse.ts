@@ -24,10 +24,15 @@ export function parse<
   const data = parser(decoder(cursor)) as T;
 
   const item = keys.reduce((acc, key) => {
-    const value = data[key];
+    let value = data[key];
+    // Handle Date strings
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+      value = new Date(value);
+    }
     acc[key] = value;
     return acc;
   }, {} as Record<string, unknown>);
+
   return item as T;
 }
 
