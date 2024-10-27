@@ -22,7 +22,11 @@ export function serialize<
 
   const keys = [primaryCursor, ...cursors].map((cursor) => cursor.key);
   const item = keys.reduce((acc, key) => {
-    const value = data[key];
+    let value = data[key];
+    // Handle Date objects
+    if (value instanceof Date) {
+      value = value.toISOString();
+    }
     acc[key] = value;
     return acc;
   }, {} as Record<string, unknown>);
