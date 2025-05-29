@@ -1,5 +1,10 @@
 import "@total-typescript/ts-reset";
 
+export function isDateString(str: string): boolean {
+  const date = new Date(str);
+  return !isNaN(date.getTime());
+}
+
 export function generateSubArrays<T>(arr: ReadonlyArray<T>): T[][] {
   const subArrays: T[][] = [];
   for (let i = 0; i < arr.length; i++) {

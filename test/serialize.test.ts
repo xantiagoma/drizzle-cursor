@@ -11,6 +11,7 @@ describe("cursors", () => {
     lastName: text("last_name"),
     phone: text("phone"),
     email: text("email"),
+    birthday: text("birthday"), // datestring,
   });
 
   const config: CursorConfig = {
@@ -18,6 +19,7 @@ describe("cursors", () => {
       { key: "firstName", schema: table.firstName, order: "DESC" },
       { key: "lastName", schema: table.lastName },
       { key: "middleName", schema: table.middleName, order: "DESC" },
+      { key: "birthday", schema: table.birthday, order: "DESC" },
     ],
     primaryCursor: { key: "id", schema: table.id, order: "ASC" },
   };
@@ -29,10 +31,11 @@ describe("cursors", () => {
     lastName: "Smith",
     phone: "1234567890",
     email: "john@doe.com",
+    birthday: "1990-01-01",
   };
 
   const cursorToken =
-    "eyJpZCI6MSwiZmlyc3ROYW1lIjoiSm9obiIsImxhc3ROYW1lIjoiU21pdGgiLCJtaWRkbGVOYW1lIjoiRG9lIn0=";
+    "eyJpZCI6MSwiZmlyc3ROYW1lIjoiSm9obiIsImxhc3ROYW1lIjoiU21pdGgiLCJtaWRkbGVOYW1lIjoiRG9lIiwiYmlydGhkYXkiOiIxOTkwLTAxLTAxVDAwOjAwOjAwLjAwMFoifQ==";
 
   describe("serialize", () => {
     test("generates a cursor", () => {

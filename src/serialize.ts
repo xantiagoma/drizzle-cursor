@@ -1,7 +1,11 @@
 import "@total-typescript/ts-reset";
 
 import type { CursorConfig } from "./types";
-import { encoder as _encoder, serializer as _serializer } from "./utils";
+import {
+  encoder as _encoder,
+  serializer as _serializer,
+  isDateString,
+} from "./utils";
 
 /**
  * serialize:
@@ -24,6 +28,9 @@ export function serialize<
   const item = keys.reduce((acc, key) => {
     let value = data[key];
     // Handle Date objects
+    if (typeof value === "string" && isDateString(value)) {
+      value = new Date(value).toISOString();
+    }
     if (value instanceof Date) {
       value = value.toISOString();
     }
