@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.5.2
+
+### Patch Changes
+
+- Validate for Date/DateTime string
+
 ## 0.5.1
 
 ### Patch Changes
