@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.5.3
+
+### Patch Changes
+
+- Parse for Date/DateTime string
+
 ## 0.5.2
 
 ### Patch Changes
