@@ -1,4 +1,4 @@
-import { Cursor, generateCursor } from "../src";
+import { type Cursor, generateCursor } from "../src";
 import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
