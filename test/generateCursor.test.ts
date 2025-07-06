@@ -2,6 +2,7 @@ import { type Cursor, generateCursor } from "../src";
 import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 
 const table = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -1514,6 +1515,394 @@ describe("generateCursor", () => {
             eq(table.lastName, item.lastName),
             eq(table.middleName, item.middleName),
             gt(table.id, item.id)
+          )
+        )
+      );
+    });
+  });
+});
+
+describe("generateCursor with SQL cursors", () => {
+  // 定义一些 SQL 表达式用于测试
+  const fullNameSql = sql`${table.firstName} || ' ' || ${table.lastName}`;
+  const upperLastNameSql = sql`upper(${table.lastName})`;
+  const lengthSql = sql`length(${table.firstName})`;
+
+  const primaryCursorDefault: Cursor = { key: "id", schema: table.id };
+  const primaryCursorSql: Cursor = { key: "id", sql: sql`${table.id}` };
+  const primaryCursorSqlASC: Cursor = { key: "id", sql: sql`${table.id}`, order: "ASC" };
+  const primaryCursorSqlDESC: Cursor = { key: "id", sql: sql`${table.id}`, order: "DESC" };
+
+  describe("with only SQL primaryCursor", () => {
+    describe("without previous data generates only orderBy and where is undefined", () => {
+      test("with primaryCursorSql default order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorSql,
+        });
+        expect(cursor.orderBy).toEqual([asc(sql`${table.id}`)]);
+        expect(cursor.where()).toBeUndefined();
+      });
+
+      test("with primaryCursorSql ASC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorSqlASC,
+        });
+        expect(cursor.orderBy).toEqual([asc(sql`${table.id}`)]);
+        expect(cursor.where()).toBeUndefined();
+      });
+
+      test("with primaryCursorSql DESC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorSqlDESC,
+        });
+        expect(cursor.orderBy).toEqual([desc(sql`${table.id}`)]);
+        expect(cursor.where()).toBeUndefined();
+      });
+    });
+
+    describe("with previous data generates orderBy and where", () => {
+      const previousData = {
+        id: 1,
+        firstName: "John",
+        middleName: "Doe",
+        lastName: "Smith",
+        phone: "123456789",
+        email: "johndoe",
+      };
+
+      test("with primaryCursorSql default order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorSql,
+        });
+        expect(cursor.orderBy).toEqual([asc(sql`${table.id}`)]);
+        expect(cursor.where(previousData)).toEqual(
+          and(or(gt(sql`${table.id}`, previousData.id)))
+        );
+      });
+
+      test("with primaryCursorSql ASC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorSqlASC,
+        });
+        expect(cursor.orderBy).toEqual([asc(sql`${table.id}`)]);
+        expect(cursor.where(previousData)).toEqual(
+          and(or(gt(sql`${table.id}`, previousData.id)))
+        );
+      });
+
+      test("with primaryCursorSql DESC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorSqlDESC,
+        });
+        expect(cursor.orderBy).toEqual([desc(sql`${table.id}`)]);
+        expect(cursor.where(previousData)).toEqual(
+          and(or(lt(sql`${table.id}`, previousData.id)))
+        );
+      });
+    });
+  });
+
+  describe("with SQL expression cursors", () => {
+    const fullNameCursor: Cursor = {
+      key: "fullName",
+      sql: fullNameSql,
+    };
+
+    const fullNameCursorASC: Cursor = {
+      key: "fullName",
+      sql: fullNameSql,
+      order: "ASC",
+    };
+
+    const fullNameCursorDESC: Cursor = {
+      key: "fullName",
+      sql: fullNameSql,
+      order: "DESC",
+    };
+
+    describe("without previous data generates only orderBy and where is undefined", () => {
+      test("with fullNameCursor default order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [fullNameCursor],
+        });
+        expect(cursor.orderBy).toEqual([asc(fullNameSql), asc(table.id)]);
+        expect(cursor.where()).toBeUndefined();
+      });
+
+      test("with fullNameCursor ASC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [fullNameCursorASC],
+        });
+        expect(cursor.orderBy).toEqual([asc(fullNameSql), asc(table.id)]);
+        expect(cursor.where()).toBeUndefined();
+      });
+
+      test("with fullNameCursor DESC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [fullNameCursorDESC],
+        });
+        expect(cursor.orderBy).toEqual([desc(fullNameSql), asc(table.id)]);
+        expect(cursor.where()).toBeUndefined();
+      });
+    });
+
+    describe("with previous data generates orderBy and where", () => {
+      const previousData = {
+        id: 1,
+        firstName: "John",
+        middleName: "Doe",
+        lastName: "Smith",
+        phone: "123456789",
+        email: "johndoe",
+        fullName: "John Smith",
+      };
+
+      test("with fullNameCursor default order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [fullNameCursor],
+        });
+        expect(cursor.orderBy).toEqual([asc(fullNameSql), asc(table.id)]);
+        expect(cursor.where(previousData)).toEqual(
+          or(
+            and(gt(fullNameSql, previousData.fullName)),
+            and(
+              eq(fullNameSql, previousData.fullName),
+              gt(table.id, previousData.id)
+            )
+          )
+        );
+      });
+
+      test("with fullNameCursor ASC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [fullNameCursorASC],
+        });
+        expect(cursor.orderBy).toEqual([asc(fullNameSql), asc(table.id)]);
+        expect(cursor.where(previousData)).toEqual(
+          or(
+            and(gt(fullNameSql, previousData.fullName)),
+            and(
+              eq(fullNameSql, previousData.fullName),
+              gt(table.id, previousData.id)
+            )
+          )
+        );
+      });
+
+      test("with fullNameCursor DESC order", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [fullNameCursorDESC],
+        });
+        expect(cursor.orderBy).toEqual([desc(fullNameSql), asc(table.id)]);
+        expect(cursor.where(previousData)).toEqual(
+          or(
+            and(lt(fullNameSql, previousData.fullName)),
+            and(
+              eq(fullNameSql, previousData.fullName),
+              gt(table.id, previousData.id)
+            )
+          )
+        );
+      });
+    });
+  });
+
+  describe("with mixed SQL and schema cursors", () => {
+    const lengthCursor: Cursor = {
+      key: "firstNameLength",
+      sql: lengthSql,
+    };
+
+    const schemaCursor: Cursor = {
+      key: "lastName",
+      schema: table.lastName,
+    };
+
+    describe("without previous data generates only orderBy and where is undefined", () => {
+      test("with lengthCursor and schemaCursor", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [lengthCursor, schemaCursor],
+        });
+        expect(cursor.orderBy).toEqual([
+          asc(lengthSql),
+          asc(table.lastName),
+          asc(table.id),
+        ]);
+        expect(cursor.where()).toBeUndefined();
+      });
+
+      test("with schemaCursor and lengthCursor", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [schemaCursor, lengthCursor],
+        });
+        expect(cursor.orderBy).toEqual([
+          asc(table.lastName),
+          asc(lengthSql),
+          asc(table.id),
+        ]);
+        expect(cursor.where()).toBeUndefined();
+      });
+    });
+
+    describe("with previous data generates orderBy and where", () => {
+      const previousData = {
+        id: 1,
+        firstName: "John",
+        middleName: "Doe",
+        lastName: "Smith",
+        phone: "123456789",
+        email: "johndoe",
+        firstNameLength: 4,
+      };
+
+      test("with lengthCursor and schemaCursor", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [lengthCursor, schemaCursor],
+        });
+        expect(cursor.orderBy).toEqual([
+          asc(lengthSql),
+          asc(table.lastName),
+          asc(table.id),
+        ]);
+        expect(cursor.where(previousData)).toEqual(
+          or(
+            and(gt(lengthSql, previousData.firstNameLength)),
+            and(
+              eq(lengthSql, previousData.firstNameLength),
+              gt(table.lastName, previousData.lastName)
+            ),
+            and(
+              eq(lengthSql, previousData.firstNameLength),
+              eq(table.lastName, previousData.lastName),
+              gt(table.id, previousData.id)
+            )
+          )
+        );
+      });
+
+      test("with schemaCursor and lengthCursor", () => {
+        const cursor = generateCursor({
+          primaryCursor: primaryCursorDefault,
+          cursors: [schemaCursor, lengthCursor],
+        });
+        expect(cursor.orderBy).toEqual([
+          asc(table.lastName),
+          asc(lengthSql),
+          asc(table.id),
+        ]);
+        expect(cursor.where(previousData)).toEqual(
+          or(
+            and(gt(table.lastName, previousData.lastName)),
+            and(
+              eq(table.lastName, previousData.lastName),
+              gt(lengthSql, previousData.firstNameLength)
+            ),
+            and(
+              eq(table.lastName, previousData.lastName),
+              eq(lengthSql, previousData.firstNameLength),
+              gt(table.id, previousData.id)
+            )
+          )
+        );
+      });
+    });
+  });
+
+  describe("with complex SQL expressions", () => {
+    const upperLastNameCursor: Cursor = {
+      key: "upperLastName",
+      sql: upperLastNameSql,
+      order: "DESC",
+    };
+
+    const previousData = {
+      id: 1,
+      firstName: "John",
+      middleName: "Doe",
+      lastName: "Smith",
+      phone: "123456789",
+      email: "johndoe",
+      upperLastName: "SMITH",
+    };
+
+    test("with upperLastNameCursor DESC order", () => {
+      const cursor = generateCursor({
+        primaryCursor: primaryCursorDefault,
+        cursors: [upperLastNameCursor],
+      });
+      expect(cursor.orderBy).toEqual([desc(upperLastNameSql), asc(table.id)]);
+      expect(cursor.where(previousData)).toEqual(
+        or(
+          and(lt(upperLastNameSql, previousData.upperLastName)),
+          and(
+            eq(upperLastNameSql, previousData.upperLastName),
+            gt(table.id, previousData.id)
+          )
+        )
+      );
+    });
+
+    test("with multiple complex SQL cursors", () => {
+      const cursor = generateCursor({
+        primaryCursor: primaryCursorSqlDESC,
+        cursors: [
+          {
+            key: "fullName",
+            sql: fullNameSql,
+            order: "ASC",
+          },
+          {
+            key: "upperLastName",
+            sql: upperLastNameSql,
+            order: "DESC",
+          },
+          {
+            key: "firstNameLength",
+            sql: lengthSql,
+            order: "ASC",
+          },
+        ],
+      });
+      
+      expect(cursor.orderBy).toEqual([
+        asc(fullNameSql),
+        desc(upperLastNameSql),
+        asc(lengthSql),
+        desc(sql`${table.id}`),
+      ]);
+      
+      const complexPreviousData = {
+        ...previousData,
+        fullName: "John Smith",
+        firstNameLength: 4,
+      };
+      
+      expect(cursor.where(complexPreviousData)).toEqual(
+        or(
+          and(gt(fullNameSql, complexPreviousData.fullName)),
+          and(
+            eq(fullNameSql, complexPreviousData.fullName),
+            lt(upperLastNameSql, complexPreviousData.upperLastName)
+          ),
+          and(
+            eq(fullNameSql, complexPreviousData.fullName),
+            eq(upperLastNameSql, complexPreviousData.upperLastName),
+            gt(lengthSql, complexPreviousData.firstNameLength)
+          ),
+          and(
+            eq(fullNameSql, complexPreviousData.fullName),
+            eq(upperLastNameSql, complexPreviousData.upperLastName),
+            eq(lengthSql, complexPreviousData.firstNameLength),
+            lt(sql`${table.id}`, complexPreviousData.id)
           )
         )
       );

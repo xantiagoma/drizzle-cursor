@@ -68,10 +68,20 @@ export const generateCursor = (
   } = options ?? {};
 
   const orderBy: Array<SQL> = [];
-  for (const { order = "ASC", schema } of [...cursors, primaryCursor]) {
+  for (const cursor of [...cursors, primaryCursor]) {
+    const { order = "ASC" } = cursor;
     const fn = order === "ASC" ? asc : desc;
-    const sql = fn(schema);
-    orderBy.push(sql);
+    
+    // Check if using SQL sorting
+    if ("sql" in cursor) {
+      // For SQL sorting, apply asc/desc directly to SQL expression
+      const sql = fn(cursor.sql);
+      orderBy.push(sql);
+    } else {
+      // Backward compatibility: use schema sorting
+      const sql = fn(cursor.schema);
+      orderBy.push(sql);
+    }
   }
 
   return {
@@ -98,12 +108,24 @@ export const generateCursor = (
         const ands: Array<SQL> = [];
         for (const cursor of posibilities) {
           const lastValue = cursor === posibilities?.at(-1);
-          const { order = "ASC", schema, key } = cursor;
+          const { order = "ASC", key } = cursor;
           const fn = order === "ASC" ? gt : lt;
-          const sql = !lastValue
-            ? eq(schema, data[key])
-            : fn(schema, data[key]);
-          ands.push(sql);
+          
+          // For SQL sorting, we need special handling
+          if ("sql" in cursor) {
+            // For SQL sorting, we can only use equality comparison or greater/less than comparison
+            // Here we assume SQL expression can be directly compared with values
+            const sql = !lastValue
+              ? eq(cursor.sql, data[key])
+              : fn(cursor.sql, data[key]);
+            ands.push(sql);
+          } else {
+            // Backward compatibility: use schema sorting
+            const sql = !lastValue
+              ? eq(cursor.schema, data[key])
+              : fn(cursor.schema, data[key]);
+            ands.push(sql);
+          }
         }
         const _and = and(...ands);
         if (!_and) {
