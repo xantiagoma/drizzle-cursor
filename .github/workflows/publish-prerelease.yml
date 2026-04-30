@@ -63,7 +63,26 @@ jobs:
       - name: Create snapshot prerelease version
         run: pnpm changeset version --snapshot ${{ env.CHANNEL }}
 
+      - name: Read published version
+        id: pkg
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Publish prerelease
         run: pnpm run release:${{ env.CHANNEL }}
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.pkg.outputs.version }}
+          CHANNEL: ${{ env.CHANNEL }}
+        run: |
+          NOTES="Prerelease published from branch $GITHUB_REF_NAME on channel '$CHANNEL'. Install with: npm i drizzle-cursor@$CHANNEL"
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            gh release edit "v$VERSION" --prerelease --title "v$VERSION" --notes "$NOTES"
+          else
+            gh release create "v$VERSION" --target "$GITHUB_SHA" --prerelease --title "v$VERSION" --notes "$NOTES"
+          fi
