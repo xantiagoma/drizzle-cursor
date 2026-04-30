@@ -13,6 +13,16 @@ Check example at: [test/example.ts](./test/example.ts)
 npm install drizzle-cursor
 ```
 
+## Compatibility
+
+- Drizzle `0.x`: supported
+- Drizzle `1.0.0-beta.x`: supported in beta
+
+Notes:
+
+- The query-builder flow (`db.select().from(...).where(cursor.where(...)).orderBy(...cursor.orderBy)`) is the most consistently supported cross-version path today.
+- Relational query APIs changed in Drizzle v1 (`db.query`/RQB v2). If you are migrating relational queries, validate behavior in your project before production rollout.
+
 > [!NOTE]
 >
 > Check types at [`TSDocs`](https://tsdocs.dev/docs/drizzle-cursor/latest/index.html)
