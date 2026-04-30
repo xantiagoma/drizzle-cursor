@@ -18,8 +18,9 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
-      - run: pnpm run test:compat
+      - run: pnpm exec vitest run
       - run: pnpm run build
+      - run: pnpm run test:compat
 
   unit-matrix:
     runs-on: ubuntu-latest
@@ -37,5 +38,5 @@ jobs:
           node-version: 18.x
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm add drizzle-orm@${{ matrix.drizzle-version }} -D
+      - run: pnpm add -w drizzle-orm@${{ matrix.drizzle-version }} -D
       - run: pnpm exec vitest run
