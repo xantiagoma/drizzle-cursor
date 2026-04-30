@@ -6,7 +6,7 @@ settings:
 
 dependencies:
   drizzle-orm:
-    specifier: '>= 0.33.0 < 1'
+    specifier: '>= 0.33.0 < 2'
     version: 0.33.0(@electric-sql/pglite@0.2.3)(@types/better-sqlite3@7.6.9)(better-sqlite3@9.4.1)
 
 devDependencies:
