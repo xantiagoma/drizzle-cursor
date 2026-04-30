@@ -5,7 +5,7 @@ on:
       - "**"
 
 jobs:
-  build:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -18,6 +18,24 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
-      - run: pnpm exec vitest run
       - run: pnpm run test:compat
       - run: pnpm run build
+
+  unit-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        drizzle-version: ["0.45.2", "beta"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add drizzle-orm@${{ matrix.drizzle-version }} -D
+      - run: pnpm exec vitest run
