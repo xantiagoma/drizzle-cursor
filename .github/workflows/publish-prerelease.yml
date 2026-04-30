@@ -60,7 +60,14 @@ jobs:
           pnpm exec vitest run
           pnpm run build
 
+      - name: Capture base version
+        id: base_version
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          echo "value=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Create snapshot prerelease version
+        id: snapshot
         run: pnpm changeset version --snapshot ${{ env.CHANNEL }}
 
       - name: Read published version
@@ -69,12 +76,26 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Detect publishable prerelease
+        id: publishable
+        run: |
+          BASE='${{ steps.base_version.outputs.value }}'
+          NEXT='${{ steps.pkg.outputs.version }}'
+          if [ "$BASE" = "$NEXT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No unreleased changesets found. Skipping prerelease publish."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish prerelease
+        if: steps.publishable.outputs.ready == 'true'
         run: pnpm run release:${{ env.CHANNEL }}
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub prerelease
+        if: steps.publishable.outputs.ready == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.pkg.outputs.version }}
@@ -86,3 +107,9 @@ jobs:
           else
             gh release create "v$VERSION" --target "$GITHUB_SHA" --prerelease --title "v$VERSION" --notes "$NOTES"
           fi
+
+      - name: Fail when no changeset is present
+        if: steps.publishable.outputs.ready != 'true'
+        run: |
+          echo "No new prerelease version was generated. Add a changeset before publishing alpha/beta."
+          exit 1
