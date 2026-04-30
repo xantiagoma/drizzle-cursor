@@ -104,6 +104,8 @@ Submit an Issue with a minimal reproducible example.
 
 > PRs are welcome
 
+Maintainers: release and prerelease workflow lives in `CONTRIBUTING.md`.
+
 ## License
 
 MIT / Do whatever you want.
