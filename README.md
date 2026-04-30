@@ -21,7 +21,7 @@ npm install drizzle-cursor
 Notes:
 
 - The query-builder flow (`db.select().from(...).where(cursor.where(...)).orderBy(...cursor.orderBy)`) is the most consistently supported cross-version path today.
-- Relational query APIs changed in Drizzle v1 (`db.query`/RQB v2). If you are migrating relational queries, validate behavior in your project before production rollout.
+- Relational query APIs changed in Drizzle v1 (`db.query`/RQB v2). If you need old relational-query behavior, use `db._query` in v1 while migrating.
 
 > [!NOTE]
 >
