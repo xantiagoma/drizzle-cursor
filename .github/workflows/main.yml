@@ -22,6 +22,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm add drizzle-orm@${{ matrix.drizzle-version }} -D
-      - run: pnpm run lint
+      - if: matrix.drizzle-version == '0.45.2'
+        run: pnpm run lint
       - run: pnpm run test
       - run: pnpm run build
