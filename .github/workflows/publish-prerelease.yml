@@ -1,0 +1,69 @@
+name: Publish Prerelease
+
+on:
+  push:
+    branches:
+      - "prerelease/alpha/**"
+      - "prerelease/beta/**"
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "NPM dist-tag"
+        required: true
+        default: "beta"
+        type: choice
+        options:
+          - beta
+          - alpha
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+
+jobs:
+  publish-prerelease:
+    if: ${{ github.ref != 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    env:
+      CHANNEL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.channel || (startsWith(github.ref_name, 'prerelease/alpha/') && 'alpha' || 'beta') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "pnpm"
+
+      - name: Creating .npmrc
+        run: |
+          cat << EOF > "$HOME/.npmrc"
+            //registry.npmjs.org/:_authToken=$NPM_TOKEN
+          EOF
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Ensure branch contains latest main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor origin/main HEAD
+
+      - name: Verify quality gates
+        run: |
+          pnpm run lint
+          pnpm exec vitest run
+          pnpm run build
+
+      - name: Create snapshot prerelease version
+        run: pnpm changeset version --snapshot ${{ env.CHANNEL }}
+
+      - name: Publish prerelease
+        run: pnpm run release:${{ env.CHANNEL }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -8,6 +8,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "release": "pnpm run build && changeset publish",
+    "release:beta": "pnpm run build && changeset publish --tag beta",
+    "release:alpha": "pnpm run build && changeset publish --tag alpha",
     "lint": "tsc",
     "test": "vitest",
     "generate:changelog": "changeset",
