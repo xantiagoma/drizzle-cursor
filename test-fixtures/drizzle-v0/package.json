@@ -1,0 +1,12 @@
+{
+  "name": "drizzle-cursor-fixture-v0",
+  "private": true,
+  "scripts": {
+    "test": "tsx test.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.3",
+    "drizzle-cursor": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  }
+}

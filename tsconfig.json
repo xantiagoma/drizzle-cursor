@@ -8,5 +8,6 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true
-  }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "drizzle.config.ts"]
 }
