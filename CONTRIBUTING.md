@@ -75,6 +75,13 @@ npm install drizzle-cursor@alpha
 4. Push to `prerelease/beta/<topic>` when ready for wider testing
 5. Merge feature PR to `main` for stable release
 
+## Drizzle v1 branch policy
+
+- `drizzle-v1` is an integration branch.
+- Do not push feature commits directly to `drizzle-v1`.
+- Always use PRs from `feat/*` branches into `drizzle-v1`.
+- Use `drizzle-v1 -> main` as the final umbrella PR when the initiative is ready.
+
 Suggested git flow:
 
 ```sh
