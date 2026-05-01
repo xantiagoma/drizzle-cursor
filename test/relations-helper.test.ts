@@ -36,11 +36,18 @@ describe("relations helper contract", () => {
       slug: "slug-10",
       name: "should-ignore",
     });
-    const token = cursor.serialize({ id: 10, slug: "slug-10", name: "should-ignore" });
+    const token = cursor.serialize({
+      id: 10,
+      slug: "slug-10",
+      name: "should-ignore",
+    });
     const fromToken = cursor.relations.where(token);
 
     expect(fromObject).toEqual({
-      OR: [{ slug: { gt: "slug-10" } }, { slug: { eq: "slug-10" }, id: { gt: 10 } }],
+      OR: [
+        { slug: { gt: "slug-10" } },
+        { id: { gt: 10 }, slug: { eq: "slug-10" } },
+      ],
     });
     expect(fromToken).toEqual(fromObject);
   });
@@ -52,11 +59,11 @@ describe("relations helper contract", () => {
     });
 
     expect(cursor.relations.orderBy).toEqual({
-      slug: "desc",
       id: "asc",
+      slug: "desc",
     });
     expect(cursor.relations.where({ id: 3, slug: "slug-03" })).toEqual({
-      OR: [{ slug: { lt: "slug-03" } }, { slug: { eq: "slug-03" }, id: { gt: 3 } }],
+      OR: [{ id: { gt: 3 } }, { id: { eq: 3 }, slug: { lt: "slug-03" } }],
     });
   });
 });
