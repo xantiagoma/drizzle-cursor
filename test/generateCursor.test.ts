@@ -1,5 +1,5 @@
 import { type Cursor, generateCursor } from "../src";
-import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lt, or, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
@@ -1658,4 +1658,344 @@ describe("generateCursor", () => {
     });
   });
 
+});
+
+// ---------------------------------------------------------------------------
+// SQL expression cursors
+// ---------------------------------------------------------------------------
+
+describe("generateCursor with SQL expression cursors", () => {
+  const fullNameSql = sql`${table.firstName} || ' ' || ${table.lastName}`;
+  const upperLastNameSql = sql`upper(${table.lastName})`;
+  const lengthSql = sql`length(${table.firstName})`;
+
+  const previousData = {
+    id: 1,
+    firstName: "John",
+    middleName: "Doe",
+    lastName: "Smith",
+    phone: "123456789",
+    email: "johndoe",
+    fullName: "John Smith",
+    upperLastName: "SMITH",
+    firstNameLength: 4,
+  };
+
+  describe("SQL-only primaryCursor", () => {
+    test("default order: orderBy asc, where undefined with no data", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", sql: sql`${table.id}` },
+      });
+      expect(cursor.orderBy).toEqual([asc(sql`${table.id}`)]);
+      expect(cursor.where()).toBeUndefined();
+    });
+
+    test("ASC: where uses gt", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", sql: sql`${table.id}`, order: "ASC" },
+      });
+      expect(cursor.orderBy).toEqual([asc(sql`${table.id}`)]);
+      expect(cursor.where(previousData)).toEqual(
+        or(and(gt(sql`${table.id}`, previousData.id)))
+      );
+    });
+
+    test("DESC: where uses lt", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", sql: sql`${table.id}`, order: "DESC" },
+      });
+      expect(cursor.orderBy).toEqual([desc(sql`${table.id}`)]);
+      expect(cursor.where(previousData)).toEqual(
+        or(and(lt(sql`${table.id}`, previousData.id)))
+      );
+    });
+  });
+
+  describe("SQL expression as secondary cursor", () => {
+    test("fullName ASC + schema primaryCursor", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql, order: "ASC" }],
+      });
+      expect(cursor.orderBy).toEqual([asc(fullNameSql), asc(table.id)]);
+      expect(cursor.where()).toBeUndefined();
+      expect(cursor.where(previousData)).toEqual(
+        or(
+          and(gt(fullNameSql, previousData.fullName)),
+          and(eq(fullNameSql, previousData.fullName), gt(table.id, previousData.id))
+        )
+      );
+    });
+
+    test("fullName DESC + schema primaryCursor", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql, order: "DESC" }],
+      });
+      expect(cursor.orderBy).toEqual([desc(fullNameSql), asc(table.id)]);
+      expect(cursor.where(previousData)).toEqual(
+        or(
+          and(lt(fullNameSql, previousData.fullName)),
+          and(eq(fullNameSql, previousData.fullName), gt(table.id, previousData.id))
+        )
+      );
+    });
+
+    test("upperLastName DESC + schema primaryCursor", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "upperLastName", sql: upperLastNameSql, order: "DESC" }],
+      });
+      expect(cursor.orderBy).toEqual([desc(upperLastNameSql), asc(table.id)]);
+      expect(cursor.where(previousData)).toEqual(
+        or(
+          and(lt(upperLastNameSql, previousData.upperLastName)),
+          and(eq(upperLastNameSql, previousData.upperLastName), gt(table.id, previousData.id))
+        )
+      );
+    });
+  });
+
+  describe("mixed SQL and schema cursors", () => {
+    test("SQL length cursor first, then schema cursor, then schema primaryCursor", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [
+          { key: "firstNameLength", sql: lengthSql, order: "ASC" },
+          { key: "lastName", schema: table.lastName, order: "ASC" },
+        ],
+      });
+      expect(cursor.orderBy).toEqual([asc(lengthSql), asc(table.lastName), asc(table.id)]);
+      expect(cursor.where(previousData)).toEqual(
+        or(
+          and(gt(lengthSql, previousData.firstNameLength)),
+          and(eq(lengthSql, previousData.firstNameLength), gt(table.lastName, previousData.lastName)),
+          and(
+            eq(lengthSql, previousData.firstNameLength),
+            eq(table.lastName, previousData.lastName),
+            gt(table.id, previousData.id)
+          )
+        )
+      );
+    });
+
+    test("schema cursor first, then SQL length cursor, then schema primaryCursor", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [
+          { key: "lastName", schema: table.lastName, order: "ASC" },
+          { key: "firstNameLength", sql: lengthSql, order: "ASC" },
+        ],
+      });
+      expect(cursor.orderBy).toEqual([asc(table.lastName), asc(lengthSql), asc(table.id)]);
+      expect(cursor.where(previousData)).toEqual(
+        or(
+          and(gt(table.lastName, previousData.lastName)),
+          and(eq(table.lastName, previousData.lastName), gt(lengthSql, previousData.firstNameLength)),
+          and(
+            eq(table.lastName, previousData.lastName),
+            eq(lengthSql, previousData.firstNameLength),
+            gt(table.id, previousData.id)
+          )
+        )
+      );
+    });
+  });
+
+  describe("multiple SQL cursors with SQL primaryCursor", () => {
+    test("complex multi-SQL cursor chain", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", sql: sql`${table.id}`, order: "DESC" },
+        cursors: [
+          { key: "fullName", sql: fullNameSql, order: "ASC" },
+          { key: "upperLastName", sql: upperLastNameSql, order: "DESC" },
+          { key: "firstNameLength", sql: lengthSql, order: "ASC" },
+        ],
+      });
+
+      expect(cursor.orderBy).toEqual([
+        asc(fullNameSql),
+        desc(upperLastNameSql),
+        asc(lengthSql),
+        desc(sql`${table.id}`),
+      ]);
+
+      expect(cursor.where(previousData)).toEqual(
+        or(
+          and(gt(fullNameSql, previousData.fullName)),
+          and(eq(fullNameSql, previousData.fullName), lt(upperLastNameSql, previousData.upperLastName)),
+          and(
+            eq(fullNameSql, previousData.fullName),
+            eq(upperLastNameSql, previousData.upperLastName),
+            gt(lengthSql, previousData.firstNameLength)
+          ),
+          and(
+            eq(fullNameSql, previousData.fullName),
+            eq(upperLastNameSql, previousData.upperLastName),
+            eq(lengthSql, previousData.firstNameLength),
+            lt(sql`${table.id}`, previousData.id)
+          )
+        )
+      );
+    });
+  });
+
+  describe("token round-trip with SQL cursors", () => {
+    test("serialize and parse work via key-based extraction", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql, order: "ASC" }],
+      });
+
+      const row = { id: 42, fullName: "Jane Doe" };
+      const token = cursor.serialize(row);
+      expect(token).toBeTypeOf("string");
+
+      const parsed = cursor.parse(token);
+      expect(parsed).toEqual({ id: 42, fullName: "Jane Doe" });
+    });
+
+    test("where() accepts token for SQL cursor", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql, order: "ASC" }],
+      });
+
+      const row = { id: 5, fullName: "Alice Smith" };
+      const token = cursor.serialize(row);
+
+      const fromObject = cursor.where(row);
+      const fromToken = cursor.where(token);
+      expect(fromToken).toEqual(fromObject);
+    });
+  });
+
+  describe("relations.where() with SQL cursors uses RAW", () => {
+    test("no previous data returns undefined", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql }],
+      });
+      expect(cursor.relations.where()).toBeUndefined();
+      expect(cursor.relations.where(null)).toBeUndefined();
+    });
+
+    test("SQL-only primaryCursor: single RAW entry per OR clause", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", sql: sql`${table.id}`, order: "ASC" },
+      });
+      const result = cursor.relations.where({ id: 5 });
+      expect(result?.OR).toHaveLength(1);
+      expect(result?.OR.map((c) => c.RAW?.(undefined))).toEqual([
+        gt(sql`${table.id}`, 5),
+      ]);
+    });
+
+    test("SQL secondary cursor + schema primaryCursor: mixed RAW and field conditions", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql, order: "ASC" }],
+      });
+      const result = cursor.relations.where({ id: 1, fullName: "John Smith" });
+      expect(result?.OR).toHaveLength(2);
+      expect(result?.OR.map((c) => c.RAW?.(undefined))).toEqual([
+        gt(fullNameSql, "John Smith"),
+        eq(fullNameSql, "John Smith"),
+      ]);
+      expect(result?.OR.map(({ RAW: _, ...rest }) => rest)).toEqual([
+        {},
+        { id: { gt: 1 } },
+      ]);
+    });
+
+    test("SQL secondary cursor DESC: RAW uses lt for inequality", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "upperLastName", sql: upperLastNameSql, order: "DESC" }],
+      });
+      const result = cursor.relations.where({ id: 1, upperLastName: "SMITH" });
+      expect(result?.OR).toHaveLength(2);
+      expect(result?.OR.map((c) => c.RAW?.(undefined))).toEqual([
+        lt(upperLastNameSql, "SMITH"),
+        eq(upperLastNameSql, "SMITH"),
+      ]);
+      expect(result?.OR.map(({ RAW: _, ...rest }) => rest)).toEqual([
+        {},
+        { id: { gt: 1 } },
+      ]);
+    });
+
+    test("multiple SQL cursors in one AND clause are combined via and()", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", sql: sql`${table.id}`, order: "ASC" },
+        cursors: [
+          { key: "fullName", sql: fullNameSql, order: "ASC" },
+          { key: "upperLastName", sql: upperLastNameSql, order: "DESC" },
+        ],
+      });
+      const result = cursor.relations.where({
+        id: 1,
+        fullName: "John Smith",
+        upperLastName: "SMITH",
+      });
+      expect(result?.OR).toHaveLength(3);
+      expect(result?.OR.map((c) => c.RAW?.(undefined))).toEqual([
+        gt(fullNameSql, "John Smith"),
+        and(eq(fullNameSql, "John Smith"), lt(upperLastNameSql, "SMITH")),
+        and(eq(fullNameSql, "John Smith"), eq(upperLastNameSql, "SMITH"), gt(sql`${table.id}`, 1)),
+      ]);
+    });
+
+    test("mixed SQL and schema cursors: RAW for sql, plain fields for schema", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [
+          { key: "lastName", schema: table.lastName, order: "ASC" },
+          { key: "firstNameLength", sql: lengthSql, order: "ASC" },
+        ],
+      });
+      const result = cursor.relations.where({
+        id: 1,
+        lastName: "Smith",
+        firstNameLength: 4,
+      });
+      expect(result?.OR).toHaveLength(3);
+      expect(result?.OR.map((c) => c.RAW?.(undefined))).toEqual([
+        undefined,           // clause 0: schema only, no RAW
+        gt(lengthSql, 4),    // clause 1: SQL length gt
+        eq(lengthSql, 4),    // clause 2: SQL length eq
+      ]);
+      expect(result?.OR.map(({ RAW: _, ...rest }) => rest)).toEqual([
+        { lastName: { gt: "Smith" } },
+        { lastName: { eq: "Smith" } },
+        { lastName: { eq: "Smith" }, id: { gt: 1 } },
+      ]);
+    });
+
+    test("token round-trip works for relations.where with SQL cursor", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql, order: "ASC" }],
+      });
+      const token = cursor.serialize({ id: 7, fullName: "Bob Jones" });
+      const fromObject = cursor.relations.where({ id: 7, fullName: "Bob Jones" });
+      const fromToken = cursor.relations.where(token);
+      // Functions can't be deep-equal; compare RAW outputs and schema fields separately
+      expect(fromToken?.OR.map((c) => c.RAW?.(undefined))).toEqual(
+        fromObject?.OR.map((c) => c.RAW?.(undefined)),
+      );
+      expect(fromToken?.OR.map(({ RAW: _, ...rest }) => rest)).toEqual(
+        fromObject?.OR.map(({ RAW: _, ...rest }) => rest),
+      );
+    });
+
+    test("relations.orderBy is a SQL callback for SQL cursors", () => {
+      const cursor = generateCursor({
+        primaryCursor: { key: "id", schema: table.id },
+        cursors: [{ key: "fullName", sql: fullNameSql, order: "ASC" }],
+      });
+      expect(cursor.relations.orderBy).toBeInstanceOf(Function);
+      expect(cursor.relations.orderBy()).toEqual([asc(fullNameSql), asc(table.id)]);
+    });
+  });
 });
