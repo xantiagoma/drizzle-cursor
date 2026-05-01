@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "drizzle-orm": [
+        "./node_modules/drizzle-orm"
+      ],
+      "drizzle-orm/*": [
+        "./node_modules/drizzle-orm/*"
+      ],
+      "drizzle-cursor": [
+        "../../dist"
+      ]
+    },
+    "types": [
+      "node"
+    ]
+  },
+  "include": ["test.ts"]
+}

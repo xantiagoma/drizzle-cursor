@@ -12,6 +12,9 @@
     "release:alpha": "pnpm run build && changeset publish --tag alpha",
     "lint": "tsc",
     "test": "vitest",
+    "test:compat:v0": "pnpm --filter drizzle-cursor-fixture-v0 test",
+    "test:compat:v1": "pnpm --filter drizzle-cursor-fixture-v1 test",
+    "test:compat": "pnpm run test:compat:v0 && pnpm run test:compat:v1",
     "generate:changelog": "changeset",
     "generate:version": "changeset version",
     "db:generate": "drizzle-kit generate:sqlite",
@@ -38,7 +41,7 @@
   "author": "Santiago Montoya <xantiagoma@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "drizzle-orm": ">= 0.33.0 < 1"
+    "drizzle-orm": ">= 0.33.0 < 2"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",

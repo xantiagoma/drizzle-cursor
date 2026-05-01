@@ -1519,4 +1519,143 @@ describe("generateCursor", () => {
       );
     });
   });
+
+  describe("relational compatibility helper", () => {
+    const slugCursorDefault: Cursor = {
+      key: "firstName",
+      schema: table.firstName,
+      order: "ASC",
+    };
+    const slugCursorDESC: Cursor = {
+      key: "id",
+      schema: table.id,
+      order: "DESC",
+    };
+    const nameCursorASC: Cursor = {
+      key: "middleName",
+      schema: table.middleName,
+      order: "ASC",
+    };
+    const nameCursorDESC: Cursor = {
+      key: "lastName",
+      schema: table.lastName,
+      order: "DESC",
+    };
+
+    test("exposes orderBy as object", () => {
+      const cursor = generateCursor({
+        primaryCursor: primaryCursorDefault,
+        cursors: [slugCursorDefault, nameCursorASC],
+      });
+      expect(cursor.relations.orderBy).toEqual({
+        firstName: "asc",
+        middleName: "asc",
+        id: "asc",
+      });
+    });
+
+    test("returns undefined when no previous data", () => {
+      const cursor = generateCursor({
+        primaryCursor: primaryCursorASC,
+        cursors: [slugCursorDefault],
+      });
+      expect(cursor.relations.where()).toBeUndefined();
+      expect(cursor.relations.where(null)).toBeUndefined();
+      expect(cursor.relations.where("")).toBeUndefined();
+    });
+
+    test("builds RQB v2 matrix for previous object", () => {
+      const cursor = generateCursor({
+        primaryCursor: primaryCursorDefault,
+        cursors: [slugCursorDefault],
+      });
+      expect(cursor.relations.where({ id: 5, firstName: "slug-05" })).toEqual({
+        OR: [
+          { firstName: { gt: "slug-05" } },
+          {
+            firstName: { eq: "slug-05" },
+            id: { gt: 5 },
+          },
+        ],
+      });
+    });
+
+    test("parses token and returns same rqb v2 shape", () => {
+      const cursor = generateCursor({
+        primaryCursor: primaryCursorASC,
+        cursors: [slugCursorDefault],
+      });
+      const token = cursor.serialize({
+        id: 4,
+        firstName: "slug-04",
+        middleName: "middleName-04",
+        lastName: "lastName-04",
+        phone: "123",
+        email: "a@b.com",
+      });
+      expect(token).toBeTypeOf("string");
+
+      const expected = cursor.relations.where({
+        id: 4,
+        firstName: "slug-04",
+      });
+      expect(cursor.relations.where(token)).toEqual(expected);
+    });
+
+    test("uses lt for desc cursor fields", () => {
+      const cursor = generateCursor({
+        primaryCursor: slugCursorDESC,
+        cursors: [nameCursorDESC],
+      });
+      expect(
+        cursor.relations.where({
+          id: 7,
+          lastName: "zeta",
+          middleName: "middleName-04",
+          firstName: "John",
+          phone: "123",
+          email: "a@b.com",
+        }),
+      ).toEqual({
+        OR: [
+          { lastName: { lt: "zeta" } },
+          {
+            lastName: { eq: "zeta" },
+            id: { lt: 7 },
+          },
+        ],
+      });
+    });
+
+    test("builds matrix for multiple cursors", () => {
+      const cursor = generateCursor({
+        primaryCursor: primaryCursorDESC,
+        cursors: [slugCursorDefault, nameCursorDESC],
+      });
+      expect(
+        cursor.relations.where({
+          id: 2,
+          firstName: "john",
+          middleName: "adam",
+          lastName: "zoe",
+          phone: "123",
+          email: "a@b.com",
+        }),
+      ).toEqual({
+        OR: [
+          { firstName: { gt: "john" } },
+          {
+            firstName: { eq: "john" },
+            lastName: { lt: "zoe" },
+          },
+          {
+            firstName: { eq: "john" },
+            lastName: { eq: "zoe" },
+            id: { lt: 2 },
+          },
+        ],
+      });
+    });
+  });
+
 });

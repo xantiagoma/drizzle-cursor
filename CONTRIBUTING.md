@@ -42,7 +42,10 @@ prerelease/beta/* branch push -> prerelease publish -> npm @beta
   - Enforces:
     - branch contains latest `main`
     - lint/test/build pass before publish
-  - Generates a snapshot prerelease version before publishing to avoid version collisions
+  - Generates prerelease versions before publishing to avoid version collisions:
+    - `alpha`: snapshot versions such as `0.0.0-alpha-20260501011439`
+    - `beta`: target-version timestamps such as `0.6.0-beta.20260501011439`
+  - Uses the generated `CHANGELOG.md` entry as GitHub prerelease notes
 
 ### Branch naming convention for prereleases
 
@@ -74,6 +77,13 @@ npm install drizzle-cursor@alpha
 3. Push to `prerelease/alpha/<topic>` for early validation
 4. Push to `prerelease/beta/<topic>` when ready for wider testing
 5. Merge feature PR to `main` for stable release
+
+## Drizzle v1 branch policy
+
+- `drizzle-v1` is an integration branch.
+- Do not push feature commits directly to `drizzle-v1`.
+- Always use PRs from `feat/*` branches into `drizzle-v1`.
+- Use `drizzle-v1 -> main` as the final umbrella PR when the initiative is ready.
 
 Suggested git flow:
 

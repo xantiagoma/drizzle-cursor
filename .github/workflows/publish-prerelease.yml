@@ -41,9 +41,24 @@ jobs:
 
       - name: Creating .npmrc
         run: |
-          cat << EOF > "$HOME/.npmrc"
-            //registry.npmjs.org/:_authToken=$NPM_TOKEN
-          EOF
+          {
+            echo "registry=https://registry.npmjs.org/"
+            echo "always-auth=true"
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
+          } > "$HOME/.npmrc"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify npm publish authentication
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::NPM_TOKEN secret is empty or missing."
+            exit 1
+          fi
+
+          NPM_USER=$(npm whoami --registry https://registry.npmjs.org/)
+          echo "Authenticated to npm as $NPM_USER"
+          npm view drizzle-cursor version --registry https://registry.npmjs.org/ >/dev/null
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -60,8 +75,50 @@ jobs:
           pnpm exec vitest run
           pnpm run build
 
-      - name: Create snapshot prerelease version
-        run: pnpm changeset version --snapshot ${{ env.CHANNEL }}
+      - name: Capture base version
+        id: base_version
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          echo "value=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create prerelease version
+        id: version
+        run: |
+          if [ "$CHANNEL" = "alpha" ]; then
+            pnpm changeset version --snapshot "$CHANNEL"
+            exit 0
+          fi
+
+          pnpm changeset version
+
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+
+          BASE_VERSION="$BASE_VERSION" CHANNEL="$CHANNEL" TIMESTAMP="$TIMESTAMP" node <<'NODE'
+          const fs = require("node:fs");
+
+          const pkgPath = "package.json";
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+          const baseVersion = process.env.BASE_VERSION;
+          const channel = process.env.CHANNEL;
+          const timestamp = process.env.TIMESTAMP;
+
+          if (!baseVersion || baseVersion.includes("-")) {
+            throw new Error(`Expected a stable calculated version, got ${baseVersion}`);
+          }
+
+          pkg.version = `${baseVersion}-${channel}.${timestamp}`;
+          fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+
+          const changelogPath = "CHANGELOG.md";
+          const changelog = fs.readFileSync(changelogPath, "utf8");
+          fs.writeFileSync(
+            changelogPath,
+            changelog.replace(`## ${baseVersion}`, `## ${pkg.version}`),
+          );
+
+          console.log(`Prepared ${pkg.name}@${pkg.version}`);
+          NODE
 
       - name: Read published version
         id: pkg
@@ -69,20 +126,78 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Detect publishable prerelease
+        id: publishable
+        run: |
+          BASE='${{ steps.base_version.outputs.value }}'
+          NEXT='${{ steps.pkg.outputs.version }}'
+          if [ "$BASE" = "$NEXT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No unreleased changesets found. Skipping prerelease publish."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Publishing prerelease version $NEXT."
+          fi
+
+      - name: Prepare GitHub release notes
+        if: steps.publishable.outputs.ready == 'true'
+        env:
+          VERSION: ${{ steps.pkg.outputs.version }}
+          CHANNEL: ${{ env.CHANNEL }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const version = process.env.VERSION;
+          const channel = process.env.CHANNEL;
+          const changelog = fs.readFileSync("CHANGELOG.md", "utf8");
+          const heading = `## ${version}`;
+          const start = changelog.indexOf(heading);
+          const next =
+            start === -1 ? -1 : changelog.indexOf("\n## ", start + heading.length);
+
+          let notes =
+            start === -1
+              ? `## ${version}\n\nPrerelease published from branch ${process.env.GITHUB_REF_NAME}.`
+              : changelog.slice(start, next === -1 ? undefined : next).trim();
+
+          notes += `\n\nInstall with:\n\n\`\`\`sh\nnpm i drizzle-cursor@${channel}\n\`\`\`\n`;
+
+          fs.writeFileSync("release-notes.md", `${notes}\n`);
+          NODE
+
       - name: Publish prerelease
-        run: pnpm run release:${{ env.CHANNEL }}
+        if: steps.publishable.outputs.ready == 'true'
+        run: |
+          set +e
+          pnpm run release:${{ env.CHANNEL }} 2>&1 | tee publish.log
+          status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$status" -ne 0 ]; then
+            if grep -q "E404 Not Found - PUT https://registry.npmjs.org/drizzle-cursor" publish.log; then
+              echo "::error::npm rejected publishing drizzle-cursor. The NPM_TOKEN is valid enough to reach npm, but it does not have publish rights for this package or is not scoped to drizzle-cursor."
+            fi
+            exit "$status"
+          fi
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub prerelease
+        if: steps.publishable.outputs.ready == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.pkg.outputs.version }}
           CHANNEL: ${{ env.CHANNEL }}
         run: |
-          NOTES="Prerelease published from branch $GITHUB_REF_NAME on channel '$CHANNEL'. Install with: npm i drizzle-cursor@$CHANNEL"
           if gh release view "v$VERSION" >/dev/null 2>&1; then
-            gh release edit "v$VERSION" --prerelease --title "v$VERSION" --notes "$NOTES"
+            gh release edit "v$VERSION" --prerelease --title "v$VERSION" --notes-file release-notes.md
           else
-            gh release create "v$VERSION" --target "$GITHUB_SHA" --prerelease --title "v$VERSION" --notes "$NOTES"
+            gh release create "v$VERSION" --target "$GITHUB_SHA" --prerelease --title "v$VERSION" --notes-file release-notes.md
           fi
+
+      - name: Fail when no changeset is present
+        if: steps.publishable.outputs.ready != 'true'
+        run: |
+          echo "No new prerelease version was generated. Add a changeset before publishing alpha/beta."
+          exit 1
