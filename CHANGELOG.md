@@ -1,5 +1,11 @@
 # drizzle-cursor
 
+## 0.6.0
+
+### Minor Changes
+
+- 443e792: Add Drizzle v1 beta compatibility groundwork with dual-version test coverage, workspace fixtures, and CI matrix validation.
+
 ## 0.5.3
 
 ### Patch Changes
