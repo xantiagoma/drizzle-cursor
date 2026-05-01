@@ -354,6 +354,77 @@ const token = cursor.serialize({ id: 1, slug: "slug-01" });
 const parsed = cursor.parse(token);
 ```
 
+## SQL Expression Cursors
+
+Instead of a table column (`schema`), you can use a raw Drizzle `sql` expression as a cursor. This is useful for sorting by computed or virtual values like case-insensitive names, concatenated fields, or any expression your database can evaluate.
+
+```ts
+import { sql } from "drizzle-orm";
+import { generateCursor } from "drizzle-cursor";
+
+const rankUpperName = sql<string>`${users.rank}::text || '-' || upper(${users.firstName})`;
+
+const cursor = generateCursor({
+  primaryCursor: { key: "id", schema: users.id, order: "ASC" },
+  cursors: [
+    { key: "rankUpperName", sql: rankUpperName, order: "ASC" },
+  ],
+});
+```
+
+The `key` must match a field in the result row so the token pipeline can read its value for pagination. Include the expression in your `select` to make it available:
+
+```ts
+const page1 = await db
+  .select({
+    id: users.id,
+    firstName: users.firstName,
+    rankUpperName, // same sql expression — makes it available in the row
+  })
+  .from(users)
+  .orderBy(...cursor.orderBy)
+  .where(cursor.where())
+  .limit(page_size);
+
+const page2 = await db
+  .select({ id: users.id, firstName: users.firstName, rankUpperName })
+  .from(users)
+  .orderBy(...cursor.orderBy)
+  .where(cursor.where(cursor.serialize(page1.at(-1))))
+  .limit(page_size);
+```
+
+### SQL cursors with RQB v2 (`cursor.relations`)
+
+When any cursor uses `sql`, `cursor.relations.orderBy` becomes a `() => SQL[]` callback instead of a plain `Record<string, "asc" | "desc">` — pass it directly to the RQB v2 `orderBy` option:
+
+```ts
+const page1 = await db.query.users.findMany({
+  orderBy: cursor.relations.orderBy, // () => SQL[] when SQL cursors are present
+  where: cursor.relations.where(),
+  limit: page_size,
+});
+```
+
+> [!NOTE]
+>
+> `cursor.relations.where()` with SQL expression cursors produces `{ RAW: ... }` conditions
+> that work correctly in RQB v2 when the SQL expression does **not** reference the table through
+> Drizzle's aliased context. For full portability across all query modes, prefer the query-builder
+> path (`cursor.where()`) or RQB v1 (`db._query`) when paginating by SQL expressions.
+
+### Named types
+
+`TableCursor` and `SQLCursor` are exported for user-facing type annotations:
+
+```ts
+import type { CursorConfig, SQLCursor, TableCursor } from "drizzle-cursor";
+
+const config: CursorConfig<SQLCursor> = {
+  primaryCursor: { key: "id", sql: sql`${users.id}`, order: "ASC" },
+};
+```
+
 ## Contributing
 
 Submit an Issue with a minimal reproducible example.

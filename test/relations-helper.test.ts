@@ -1,5 +1,5 @@
 import { generateCursor } from "../src";
-import { eq, gt, lt } from "drizzle-orm";
+import { asc, eq, gt, lt, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
@@ -50,6 +50,32 @@ describe("relations helper contract", () => {
       ],
     });
     expect(fromToken).toEqual(fromObject);
+  });
+
+  test("SQL expression cursor uses RAW in relations.where and returns SQL callback for orderBy", () => {
+    const upperNameSql = sql`upper(${users.name})`;
+    const cursor = generateCursor({
+      primaryCursor: { key: "id", schema: users.id, order: "ASC" },
+      cursors: [{ key: "upperName", sql: upperNameSql, order: "ASC" }],
+    });
+
+    // orderBy is now a callback returning SQL[] — usable as RQB v2 orderBy callback
+    expect(cursor.relations.orderBy).toBeInstanceOf(Function);
+    expect(cursor.relations.orderBy()).toEqual([asc(upperNameSql), asc(users.id)]);
+
+    expect(cursor.relations.where()).toBeUndefined();
+    expect(cursor.relations.where(null)).toBeUndefined();
+
+    const result = cursor.relations.where({ id: 1, upperName: "ALICE" });
+    expect(result?.OR).toHaveLength(2);
+    expect(result?.OR.map((c) => c.RAW?.(undefined))).toEqual([
+      gt(upperNameSql, "ALICE"),
+      eq(upperNameSql, "ALICE"),
+    ]);
+    expect(result?.OR.map(({ RAW: _, ...rest }) => rest)).toEqual([
+      {},
+      { id: { gt: 1 } },
+    ]);
   });
 
   test("applies desc order in relations helper", () => {
