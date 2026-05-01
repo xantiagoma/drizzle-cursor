@@ -15,13 +15,18 @@ npm install drizzle-cursor
 
 ## Compatibility
 
-- Drizzle `0.x`: supported
-- Drizzle `1.0.0-beta.x`: supported in beta
+- Drizzle `0.x` query-builder: guaranteed
+- Drizzle `0.x` relational query (RQB v1): `db.query` with SQL-compatible args
+- Drizzle `1.0.0-beta.x` query-builder: guaranteed
+- Drizzle `1.0.0-beta.x` RQB v1 (`db._query`) and RQB v2 (`db.query`): supported
 
 Notes:
 
-- The query-builder flow (`db.select().from(...).where(cursor.where(...)).orderBy(...cursor.orderBy)`) is the most consistently supported cross-version path today.
-- Relational query APIs changed in Drizzle v1 (`db.query`/RQB v2). If you need old relational-query behavior, use `db._query` in v1 while migrating.
+- Canonical cross-version path: query-builder
+  (`db.select().from(...).where(cursor.where(...)).orderBy(...cursor.orderBy)`).
+- `cursor.relations` is only for RQB v2 (`db.query`) and uses
+  `cursor.key` names as relational keys.
+- Nullable cursor columns remain discouraged due database and driver consistency differences.
 
 > [!NOTE]
 >
@@ -52,12 +57,16 @@ const cursorConfig: CursorConfig = {
 const cursor = generateCursor(cursorConfig);
 ```
 
-Pass `...cursor.orderBy` to `.orderBy` and `cursor.where()` to `.where` on `db.select` chained methods (also works with `db.query`).
+Pass `...cursor.orderBy` to `.orderBy` and `cursor.where()` to `.where` on query-builder calls.
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 >
 > for the first batch of results `cursor.where()` is empty,
 >
+
+## Querying
+
+### Query Builder
 
 ```ts
 const page1 = await db
@@ -73,39 +82,276 @@ const page1 = await db
   .limit(page_size);
 ```
 
-For the sub-sequent queries you can send the last previous record on `cursor.where`
+For the subsequent queries you can send the last previous record on `cursor.where`
 
 ```ts
 const page2 = await db
-  .select() // .select() can vary while includes the needed data to create next curso (the same as the tables listed in primaryCursor and cursors)
+  .select() // .select() can vary while it includes the needed data to create the cursor
   .from(schema.users)
   .orderBy(...cursor.orderBy)
   .where(cursor.where(page1.at(-1))) // last record of previous query (or any record "before: the one you want to start with)
   .limit(page_size);
 ```
 
-or the token of the item (useful to send/receive from the FE)
+or a token from the last item (useful to send to FE)
+
+#### With token
 
 ```ts
-const lastToken = cursor.serialize(page2.at(-1)); // use serialize method/function to send tokens to your FE
+const token = cursor.serialize(page2.at(-1)); // Send this string to FE
+const pageFromToken = await db
+  .select({
+    lastName: schema.users.lastName,
+    firstName: schema.users.firstName,
+    middleName: schema.users.middleName,
+    id: schema.users.id,
+  })
+  .from(schema.users)
+  .orderBy(...cursor.orderBy)
+  .where(cursor.where(token)) // parse() is already handled internally by cursor.where
+  .limit(page_size);
+```
 
-// if you want to convert back the token to a object:
-const lastItem = cursor.parse(lastToken); // use parse method/function to transform back in an object
+### Query V1
 
-const page3 = await db.query.users.findMany({
-  // It also works with Relational Queries
+#### Drizzle v0 (`db.query`)
+
+```ts
+const page1V0 = await db.query.users.findMany({
   columns: {
-    // Be sure to include the data needed to create the cursor if using columns
     lastName: true,
     firstName: true,
     middleName: true,
     id: true,
   },
-  orderBy: cursor.orderBy, // no need to destructure here
-  where: cursor.where(lastToken), // .where() also accepts the string token directly, no need to pre-parse it (at least you want to run extra validations)
+  orderBy: cursor.orderBy,
+  where: cursor.where(),
   limit: page_size,
 });
 
+const page2V0 = await db.query.users.findMany({
+  columns: {
+    lastName: true,
+    firstName: true,
+    middleName: true,
+    id: true,
+  },
+  orderBy: cursor.orderBy,
+  where: cursor.where(cursor.serialize(page1V0.at(-1))),
+  limit: page_size,
+});
+```
+
+#### Drizzle v1 (`db._query`) legacy
+
+```ts
+const page1V1 = await db._query.users.findMany({
+  columns: {
+    lastName: true,
+    firstName: true,
+    middleName: true,
+    id: true,
+  },
+  orderBy: cursor.orderBy,
+  where: cursor.where(),
+  limit: page_size,
+});
+
+const page2V1 = await db._query.users.findMany({
+  columns: {
+    lastName: true,
+    firstName: true,
+    middleName: true,
+    id: true,
+  },
+  orderBy: cursor.orderBy,
+  where: cursor.where(cursor.serialize(page1V1.at(-1))),
+  limit: page_size,
+});
+```
+
+### Query V2
+
+#### Drizzle v1 (`db.query`)
+
+```ts
+const page1V2 = await db.query.users.findMany({
+  columns: {
+    lastName: true,
+    firstName: true,
+    middleName: true,
+    id: true,
+  },
+  orderBy: cursor.relations.orderBy,
+  where: cursor.relations.where(),
+  limit: page_size,
+});
+
+const page2V2 = await db.query.users.findMany({
+  columns: {
+    lastName: true,
+    firstName: true,
+    middleName: true,
+    id: true,
+  },
+  orderBy: cursor.relations.orderBy,
+  where: cursor.relations.where(cursor.serialize(page1V2.at(-1))),
+  limit: page_size,
+});
+```
+
+## where
+
+`generateCursor` uses `cursor.where()` exactly for this rule:
+
+- `cursor.where()` with **no args** means first page → returns `undefined`.
+- `cursor.where(...)` with a **previous record** (`object`) or a **cursor string** (`token`) means next page.
+
+Important: only keys in your cursor definition (`primaryCursor` + `cursors`) matter.  
+Extra keys in rows are ignored.
+
+```ts
+const firstPage = await db
+  .select({
+    lastName: schema.users.lastName,
+    firstName: schema.users.firstName,
+    middleName: schema.users.middleName,
+    id: schema.users.id,
+  })
+  .from(schema.users)
+  .orderBy(...cursor.orderBy)
+  .where(cursor.where()) // No args => first page.
+  .limit(page_size);
+
+const page2FromObject = await db
+  .select({ id: schema.users.id })
+  .from(schema.users)
+  .orderBy(...cursor.orderBy)
+  .where(cursor.where(firstPage.at(-1))) // Previous row object.
+  .limit(page_size);
+
+const token = cursor.serialize(firstPage.at(-1));
+
+const page2FromToken = await db
+  .select({ id: schema.users.id })
+  .from(schema.users)
+  .orderBy(...cursor.orderBy)
+  .where(cursor.where(token)) // Token string from previous page - MOCK EXAMPLE you in reality would get from the API request.
+  .limit(page_size);
+```
+
+## Custom parser + serializer
+
+If the default `JSON.stringify/JSON.parse` pipeline is not enough, pass `parser` and `serializer` to `generateCursor`:
+
+- `parser`: converts the decoded payload into a JavaScript object.
+- `serializer`: converts your payload object into a string before encode.
+
+Parser/serializer options (payload layer):
+
+- [superjson](https://github.com/blitz-js/superjson)
+- [devalue](https://github.com/sveltejs/devalue)
+- [msgpackr](https://github.com/kriszyp/msgpackr)
+- [flatted](https://github.com/WebReflection/flatted)
+- [yaml](https://github.com/eemeli/yaml) / [js-yaml](https://github.com/nodeca/js-yaml)
+- [toml](https://github.com/BinaryMuse/toml)
+- [JSON5](https://github.com/json5/json5)
+- [zipson](https://github.com/gregersrygg/zipson)
+- [ZON](https://github.com/ZON-Format/zon-TS)
+- [tron](https://tron-format.github.io/)
+- [toon](https://github.com/toon-format/toon)
+- [csv](https://github.com/adaltas/node-csv)
+- etc (`serializer: (value: T) => string`, `parser: (value: string) => T`)
+
+Example (from the extended tests):
+
+```ts
+import { generateCursor } from "drizzle-cursor";
+import { parse, stringify } from "superjson";
+
+const cursor = generateCursor(
+  {
+    primaryCursor: { key: "id", schema: users.id, order: "ASC" },
+    cursors: [{ key: "slug", schema: users.slug, order: "ASC" }],
+  },
+  {
+    serializer: (value) => `cur_${stringify(value)}`,
+    parser: (value) => parse(value.slice(4)),
+  },
+);
+
+const token = cursor.serialize({ id: 1, slug: "slug-01" });
+const parsed = cursor.parse(token);
+```
+
+## Custom encoder + decoder
+
+Use `encoder` and `decoder` when you need to post-process the full token string
+(prefix, URL-safe base encoding, encryption, obfuscation, compression, etc.).
+
+- `encoder`: transforms the serialized payload into the final token string.
+- `decoder`: restores the serialized payload for `parser`.
+
+Encoder/decoder options (token layer):
+
+- `base64url` / `base-x` (`bun.toBase64`, `Buffer`, `base-x` alphabets).
+- [base-x](https://github.com/cryptocoinjs/base-x)
+- `AES` (`crypto.createCipheriv` / `createDecipheriv`).
+- URL-safe wrappers and signatures (HMAC/JWT-like) to prevent tampering.
+- custom prefixing/suffixing and checksums.
+- [base64-js](https://github.com/beatgammit/base64-js)
+- [base64url](https://github.com/joepie91/node-base64-url)
+- [tweetnacl](https://github.com/dchest/tweetnacl-js) (for signing/encrypt-like workflows)
+- etc (`encoder: (value: string) => string`, `decoder: (value: string) => string`)
+
+`generateCursor` second argument shape (`options`):
+
+```ts
+type CursorRecord = Record<string, unknown>;
+
+type CursorOptions<T extends CursorRecord = CursorRecord> = {
+  decoder?: (value: string) => string;
+  encoder?: (value: string) => string;
+  parser?: (value: string) => T;
+  serializer?: (value: T) => string;
+  parse?: (cursor: string | null) => T | null;
+  serialize?: (data?: T | null) => string | null;
+};
+```
+
+Notes:
+
+- `parser`, `serializer`, `encoder`, `decoder` are usually enough to customize the token pipeline.
+- `parse` and `serialize` are advanced overrides (rarely needed) that replace the full internals:
+  - `serialize`: build the full cursor token.
+  - `parse`: read and validate the full cursor token.
+- In 99% of cases, prefer `parser`/`serializer` (+ optional `encoder`/`decoder`) and keep `parse`/`serialize` as defaults.
+
+```ts
+import { generateCursor } from "drizzle-cursor";
+import BaseX from "base-x";
+
+const prefix = "cur_";
+const baseX = BaseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
+
+const encoder = (value: string) => `${prefix}${baseX.encode(Buffer.from(value, "utf-8"))}`;
+const decoder = (value: string) => {
+  if (!value.startsWith(prefix)) {
+    throw new Error("Invalid cursor token");
+  }
+  return Buffer.from(baseX.decode(value.slice(prefix.length))).toString("utf-8");
+};
+
+const cursor = generateCursor(
+  {
+    primaryCursor: { key: "id", schema: users.id, order: "ASC" },
+    cursors: [{ key: "slug", schema: users.slug, order: "ASC" }],
+  },
+  { encoder, decoder },
+);
+
+const token = cursor.serialize({ id: 1, slug: "slug-01" });
+const parsed = cursor.parse(token);
 ```
 
 ## Contributing

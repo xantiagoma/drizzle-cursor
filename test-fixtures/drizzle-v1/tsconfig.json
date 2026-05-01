@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "moduleDetection": "force",
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "drizzle-orm": [
+        "./node_modules/drizzle-orm"
+      ],
+      "drizzle-orm/*": [
+        "./node_modules/drizzle-orm/*"
+      ]
+    },
+    "types": [
+      "node"
+    ],
+    "esModuleInterop": true
+  },
+  "include": [
+    "test.ts"
+  ]
+}
