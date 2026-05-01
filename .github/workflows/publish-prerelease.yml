@@ -41,9 +41,24 @@ jobs:
 
       - name: Creating .npmrc
         run: |
-          cat << EOF > "$HOME/.npmrc"
-            //registry.npmjs.org/:_authToken=$NPM_TOKEN
-          EOF
+          {
+            echo "registry=https://registry.npmjs.org/"
+            echo "always-auth=true"
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
+          } > "$HOME/.npmrc"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify npm publish authentication
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::NPM_TOKEN secret is empty or missing."
+            exit 1
+          fi
+
+          NPM_USER=$(npm whoami --registry https://registry.npmjs.org/)
+          echo "Authenticated to npm as $NPM_USER"
+          npm view drizzle-cursor version --registry https://registry.npmjs.org/ >/dev/null
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -60,7 +75,14 @@ jobs:
           pnpm exec vitest run
           pnpm run build
 
+      - name: Capture base version
+        id: base_version
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          echo "value=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Create snapshot prerelease version
+        id: snapshot
         run: pnpm changeset version --snapshot ${{ env.CHANNEL }}
 
       - name: Read published version
@@ -69,12 +91,38 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Detect publishable prerelease
+        id: publishable
+        run: |
+          BASE='${{ steps.base_version.outputs.value }}'
+          NEXT='${{ steps.pkg.outputs.version }}'
+          if [ "$BASE" = "$NEXT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No unreleased changesets found. Skipping prerelease publish."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Publishing prerelease version $NEXT."
+          fi
+
       - name: Publish prerelease
-        run: pnpm run release:${{ env.CHANNEL }}
+        if: steps.publishable.outputs.ready == 'true'
+        run: |
+          set +e
+          pnpm run release:${{ env.CHANNEL }} 2>&1 | tee publish.log
+          status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$status" -ne 0 ]; then
+            if grep -q "E404 Not Found - PUT https://registry.npmjs.org/drizzle-cursor" publish.log; then
+              echo "::error::npm rejected publishing drizzle-cursor. The NPM_TOKEN is valid enough to reach npm, but it does not have publish rights for this package or is not scoped to drizzle-cursor."
+            fi
+            exit "$status"
+          fi
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub prerelease
+        if: steps.publishable.outputs.ready == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.pkg.outputs.version }}
@@ -86,3 +134,9 @@ jobs:
           else
             gh release create "v$VERSION" --target "$GITHUB_SHA" --prerelease --title "v$VERSION" --notes "$NOTES"
           fi
+
+      - name: Fail when no changeset is present
+        if: steps.publishable.outputs.ready != 'true'
+        run: |
+          echo "No new prerelease version was generated. Add a changeset before publishing alpha/beta."
+          exit 1
