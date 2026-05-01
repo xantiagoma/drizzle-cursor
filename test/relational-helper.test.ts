@@ -1,4 +1,4 @@
-import { generateCursor } from "../../src";
+import { generateCursor } from "../src";
 import { eq, gt, lt } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
