@@ -81,9 +81,36 @@ jobs:
           BASE_VERSION=$(node -p "require('./package.json').version")
           echo "value=$BASE_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Create snapshot prerelease version
-        id: snapshot
-        run: pnpm changeset version --snapshot ${{ env.CHANNEL }}
+      - name: Create prerelease version
+        id: version
+        run: |
+          if [ "$CHANNEL" = "alpha" ]; then
+            pnpm changeset version --snapshot "$CHANNEL"
+            exit 0
+          fi
+
+          pnpm changeset version
+
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+
+          BASE_VERSION="$BASE_VERSION" CHANNEL="$CHANNEL" TIMESTAMP="$TIMESTAMP" node <<'NODE'
+          const fs = require("node:fs");
+
+          const pkgPath = "package.json";
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+          const baseVersion = process.env.BASE_VERSION;
+          const channel = process.env.CHANNEL;
+          const timestamp = process.env.TIMESTAMP;
+
+          if (!baseVersion || baseVersion.includes("-")) {
+            throw new Error(`Expected a stable calculated version, got ${baseVersion}`);
+          }
+
+          pkg.version = `${baseVersion}-${channel}.${timestamp}`;
+          fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+          console.log(`Prepared ${pkg.name}@${pkg.version}`);
+          NODE
 
       - name: Read published version
         id: pkg

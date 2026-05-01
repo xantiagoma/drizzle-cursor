@@ -42,7 +42,9 @@ prerelease/beta/* branch push -> prerelease publish -> npm @beta
   - Enforces:
     - branch contains latest `main`
     - lint/test/build pass before publish
-  - Generates a snapshot prerelease version before publishing to avoid version collisions
+  - Generates prerelease versions before publishing to avoid version collisions:
+    - `alpha`: snapshot versions such as `0.0.0-alpha-20260501011439`
+    - `beta`: target-version timestamps such as `0.6.0-beta.20260501011439`
 
 ### Branch naming convention for prereleases
 
