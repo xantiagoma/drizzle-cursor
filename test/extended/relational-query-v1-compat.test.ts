@@ -6,55 +6,44 @@ import { sql } from "drizzle-orm";
 
 import { generateCursor } from "../../src";
 
-type RelationalFindManyResult = Array<{
-  id: number;
-  slug: string;
-}>;
-
 type RelationalFindManyInput = {
-  columns: Record<string, true>;
-  orderBy: unknown;
-  where: unknown;
+  columns: {
+    id: true;
+    slug: true;
+  };
+  orderBy: ReturnType<Awaited<ReturnType<typeof generateCursor>>["orderBy"]>;
+  where: ReturnType<Awaited<ReturnType<typeof generateCursor>>["where"]>;
   limit: number;
 };
 
-type RelationalUsersApi = {
-  findMany: (input: RelationalFindManyInput) => Promise<RelationalFindManyResult>;
-};
+type RelationalFindMany = (input: RelationalFindManyInput) => Promise<Array<{ id: number; slug: string }>>;
 
-const getRelationalApi = (
-  db: { [key: string]: unknown },
-  path: "_query" | "query",
-): RelationalUsersApi | undefined => {
-  const root = Reflect.get(db, path);
-  if (typeof root !== "object" || root === null) {
+const getRelationalFindMany = (db: Record<string, unknown>, key: "_query" | "query"): RelationalFindMany | undefined => {
+  const container = db[key];
+  if (!container || typeof container !== "object") {
     return undefined;
   }
 
-  if (!("users" in root)) {
+  const users = (container as { users?: unknown }).users;
+  if (!users || typeof users !== "object") {
     return undefined;
   }
 
-  const users = Reflect.get(root as Record<string, unknown>, "users");
-  if (typeof users !== "object" || users === null || !("findMany" in users)) {
-    return undefined;
-  }
-
-  const findMany = Reflect.get(users as Record<string, unknown>, "findMany");
+  const findMany = (users as { findMany?: unknown }).findMany;
   if (typeof findMany !== "function") {
     return undefined;
   }
 
-  return { findMany } as RelationalUsersApi;
+  return findMany as RelationalFindMany;
 };
 
-const runRelationalPage = async (relationalApi: RelationalUsersApi, label: string) => {
+const runRelationalPage = async (findMany: RelationalFindMany, relationLabel: string) => {
   const cursor = generateCursor({
     primaryCursor: { key: "id", schema: users.id, order: "ASC" },
     cursors: [{ key: "slug", schema: users.slug, order: "ASC" }],
   });
 
-  const firstPage = await relationalApi.findMany({
+  const firstPage = await findMany({
     columns: {
       id: true,
       slug: true,
@@ -79,7 +68,7 @@ const runRelationalPage = async (relationalApi: RelationalUsersApi, label: strin
 
   expect(secondPage).toHaveLength(5);
   expect(secondPage[0]?.slug).toBe("slug-06");
-  return { firstPage, secondPage, label };
+  return { firstPage, secondPage, relationLabel };
 };
 
 const users = pgTable("users", {
@@ -91,7 +80,7 @@ const users = pgTable("users", {
 const schema = { users };
 
 describe("relational query compatibility", () => {
-  test("supports query-builder path across drizzle versions", async () => {
+  const setup = async () => {
     const client = new PGlite();
     const db = drizzle(client, { schema });
 
@@ -105,6 +94,11 @@ describe("relational query compatibility", () => {
         slug: `slug-${String(i).padStart(2, "0")}`,
       });
     }
+    return db;
+  };
+
+  test("supports query-builder path across drizzle versions", async () => {
+    const db = await setup();
 
     const cursor = generateCursor({
       primaryCursor: { key: "id", schema: users.id, order: "ASC" },
@@ -134,50 +128,22 @@ describe("relational query compatibility", () => {
     expect(page2[0]?.slug).toBe("slug-06");
   });
 
-  test("supports db._query.users.findMany when available", async () => {
-    const client = new PGlite();
-    const db = drizzle(client, { schema });
+  test("supports db._query in drizzle v1 and db.query in drizzle v0/v1", async () => {
+    const db = await setup();
+    const hasLegacyRelational = "_query" in db && "query" in db;
 
-    await db.execute(
-      sql`create table users (id integer generated always as identity primary key, name text not null, slug text not null);`,
-    );
+    const queryApi = getRelationalFindMany(db, "query");
+    const legacyApi = getRelationalFindMany(db, "_query");
 
-    for (let i = 1; i <= 20; i++) {
-      await db.insert(users).values({
-        name: `user-${i}`,
-        slug: `slug-${String(i).padStart(2, "0")}`,
-      });
-    }
-
-    const usersQuery = getRelationalApi(db as Record<string, unknown>, "_query");
-    if (!usersQuery?.findMany) {
-      expect(usersQuery).toBeUndefined();
-      return;
-    }
-    await runRelationalPage(usersQuery, "db._query");
-  });
-
-  test("supports db.query.users.findMany when available", async () => {
-    const client = new PGlite();
-    const db = drizzle(client, { schema });
-
-    await db.execute(
-      sql`create table users (id integer generated always as identity primary key, name text not null, slug text not null);`,
-    );
-
-    for (let i = 1; i <= 20; i++) {
-      await db.insert(users).values({
-        name: `user-${i}`,
-        slug: `slug-${String(i).padStart(2, "0")}`,
-      });
-    }
-
-    const usersQuery = getRelationalApi(db as Record<string, unknown>, "query");
-    if (!usersQuery?.findMany) {
-      expect(usersQuery).toBeUndefined();
+    if (hasLegacyRelational) {
+      expect(legacyApi).toBeDefined();
+      expect(queryApi).toBeDefined();
+      await runRelationalPage(legacyApi!, "db._query.users.findMany");
+      await runRelationalPage(queryApi!, "db.query.users.findMany");
       return;
     }
 
-    await runRelationalPage(usersQuery, "db.query");
+    expect(queryApi).toBeDefined();
+    await runRelationalPage(queryApi!, "db.query.users.findMany");
   });
 });
