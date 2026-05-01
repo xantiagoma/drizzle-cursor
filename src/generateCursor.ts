@@ -1,6 +1,6 @@
 import { SQL, and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 
-import type { CursorConfig, RelationalOrderBy, RelationalWhere } from "./types";
+import type { CursorConfig, RelationsOrderBy, RelationsWhere } from "./types";
 import {
   generateSubArrays,
   decoder as _decoder,
@@ -69,7 +69,7 @@ export const generateCursor = (
 
   const allCursors = [...cursors, primaryCursor];
   const orderBy: Array<SQL> = [];
-  const relationalOrderBy: RelationalOrderBy = {};
+  const relationsOrderBy: RelationsOrderBy = {};
 
   const isColumn = (schema: unknown): schema is Parameters<typeof asc>[0] =>
     typeof schema === "object" && schema !== null;
@@ -86,11 +86,11 @@ export const generateCursor = (
   for (const { order = "ASC", key, schema } of allCursors) {
     const fn = order === "ASC" ? asc : desc;
     orderBy.push(fn(assertColumn(schema, key)));
-    relationalOrderBy[key] = order === "ASC" ? "asc" : "desc";
+    relationsOrderBy[key] = order === "ASC" ? "asc" : "desc";
   }
 
-  const relations: { orderBy: RelationalOrderBy; where: (lastPreviousItemData?: Record<string, unknown> | string | null) => RelationalWhere | { OR: RelationalWhere[] } | undefined } = {
-    orderBy: relationalOrderBy,
+  const relations: { orderBy: RelationsOrderBy; where: (lastPreviousItemData?: Record<string, unknown> | string | null) => RelationsWhere | { OR: RelationsWhere[] } | undefined } = {
+    orderBy: relationsOrderBy,
     where: (lastPreviousItemData?: Record<string, unknown> | string | null) => {
       if (!lastPreviousItemData) {
         return undefined;
@@ -107,10 +107,10 @@ export const generateCursor = (
 
       const matrix = generateSubArrays(allCursors);
 
-      const ors: Array<RelationalWhere> = [];
+      const ors: Array<RelationsWhere> = [];
 
       for (const possibilities of matrix) {
-        const clause: RelationalWhere = {};
+        const clause: RelationsWhere = {};
         for (const cursor of possibilities) {
           const lastValue = cursor === possibilities?.at(-1);
           const { order = "ASC", key } = cursor;
