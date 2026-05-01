@@ -24,7 +24,7 @@ Notes:
 
 - Canonical cross-version path: query-builder
   (`db.select().from(...).where(cursor.where(...)).orderBy(...cursor.orderBy)`).
-- `cursor.relational` is only for RQB v2 (`db.query`) and uses
+- `cursor.relations` is only for RQB v2 (`db.query`) and uses
   `cursor.key` names as relational keys.
 - Nullable cursor columns remain discouraged due database and driver consistency differences.
 
@@ -182,8 +182,8 @@ const page1V2 = await db.query.users.findMany({
     middleName: true,
     id: true,
   },
-  orderBy: cursor.relational.orderBy,
-  where: cursor.relational.where(),
+  orderBy: cursor.relations.orderBy,
+  where: cursor.relations.where(),
   limit: page_size,
 });
 
@@ -194,8 +194,8 @@ const page2V2 = await db.query.users.findMany({
     middleName: true,
     id: true,
   },
-  orderBy: cursor.relational.orderBy,
-  where: cursor.relational.where(cursor.serialize(page1V2.at(-1))),
+  orderBy: cursor.relations.orderBy,
+  where: cursor.relations.where(cursor.serialize(page1V2.at(-1))),
   limit: page_size,
 });
 ```

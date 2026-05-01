@@ -89,7 +89,7 @@ export const generateCursor = (
     relationalOrderBy[key] = order === "ASC" ? "asc" : "desc";
   }
 
-  const relational: { orderBy: RelationalOrderBy; where: (lastPreviousItemData?: Record<string, unknown> | string | null) => RelationalWhere | { OR: RelationalWhere[] } | undefined } = {
+  const relations: { orderBy: RelationalOrderBy; where: (lastPreviousItemData?: Record<string, unknown> | string | null) => RelationalWhere | { OR: RelationalWhere[] } | undefined } = {
     orderBy: relationalOrderBy,
     where: (lastPreviousItemData?: Record<string, unknown> | string | null) => {
       if (!lastPreviousItemData) {
@@ -167,7 +167,7 @@ export const generateCursor = (
       return where;
     },
 
-    relational: relational,
+    relations,
 
     parse: (cursor: string | null) => parse(config, cursor, decoder, parser),
 

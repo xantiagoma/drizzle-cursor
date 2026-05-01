@@ -90,8 +90,8 @@ async function main() {
    ************/
 
   const queryV2Page1 = await db.query.users.findMany({
-    orderBy: cursor.relational.orderBy,
-    where: cursor.relational.where(),
+    orderBy: cursor.relations.orderBy,
+    where: cursor.relations.where(),
     limit: 5,
   });
 
@@ -99,8 +99,8 @@ async function main() {
   assert.equal(queryV2Page1[0].slug, "slug-01");
 
   const queryV2Page2 = await db.query.users.findMany({
-    orderBy: cursor.relational.orderBy,
-    where: cursor.relational.where(queryV2Page1.at(-1)),
+    orderBy: cursor.relations.orderBy,
+    where: cursor.relations.where(queryV2Page1.at(-1)),
     limit: 5,
   });
 

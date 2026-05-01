@@ -9,35 +9,35 @@ const users = sqliteTable("users", {
   slug: text("slug"),
 });
 
-describe("relational helper contract", () => {
-  test("checks cursor.relational helper values", () => {
+describe("relations helper contract", () => {
+  test("checks cursor.relations helper values", () => {
     const cursor = generateCursor({
       primaryCursor: { key: "id", schema: users.id, order: "ASC" },
       cursors: [{ key: "slug", schema: users.slug, order: "ASC" }],
     });
 
-    expect(cursor.relational.orderBy).toEqual({
+    expect(cursor.relations.orderBy).toEqual({
       slug: "asc",
       id: "asc",
     });
-    expect(cursor.relational.where()).toBeUndefined();
-    expect(cursor.relational.where(null)).toBeUndefined();
-    expect(cursor.relational.where("")).toBeUndefined();
+    expect(cursor.relations.where()).toBeUndefined();
+    expect(cursor.relations.where(null)).toBeUndefined();
+    expect(cursor.relations.where("")).toBeUndefined();
   });
 
-  test("builds relational where from object and token", () => {
+  test("builds relations where from object and token", () => {
     const cursor = generateCursor({
       primaryCursor: { key: "id", schema: users.id, order: "ASC" },
       cursors: [{ key: "slug", schema: users.slug, order: "ASC" }],
     });
 
-    const fromObject = cursor.relational.where({
+    const fromObject = cursor.relations.where({
       id: 10,
       slug: "slug-10",
       name: "should-ignore",
     });
     const token = cursor.serialize({ id: 10, slug: "slug-10", name: "should-ignore" });
-    const fromToken = cursor.relational.where(token);
+    const fromToken = cursor.relations.where(token);
 
     expect(fromObject).toEqual({
       OR: [{ slug: { gt: "slug-10" } }, { slug: { eq: "slug-10" }, id: { gt: 10 } }],
@@ -45,17 +45,17 @@ describe("relational helper contract", () => {
     expect(fromToken).toEqual(fromObject);
   });
 
-  test("applies desc order in relational helper", () => {
+  test("applies desc order in relations helper", () => {
     const cursor = generateCursor({
       primaryCursor: { key: "slug", schema: users.slug, order: "DESC" },
       cursors: [{ key: "id", schema: users.id, order: "ASC" }],
     });
 
-    expect(cursor.relational.orderBy).toEqual({
+    expect(cursor.relations.orderBy).toEqual({
       slug: "desc",
       id: "asc",
     });
-    expect(cursor.relational.where({ id: 3, slug: "slug-03" })).toEqual({
+    expect(cursor.relations.where({ id: 3, slug: "slug-03" })).toEqual({
       OR: [{ slug: { lt: "slug-03" } }, { slug: { eq: "slug-03" }, id: { gt: 3 } }],
     });
   });

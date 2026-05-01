@@ -1547,7 +1547,7 @@ describe("generateCursor", () => {
         primaryCursor: primaryCursorDefault,
         cursors: [slugCursorDefault, nameCursorASC],
       });
-      expect(cursor.relational.orderBy).toEqual({
+      expect(cursor.relations.orderBy).toEqual({
         firstName: "asc",
         middleName: "asc",
         id: "asc",
@@ -1559,9 +1559,9 @@ describe("generateCursor", () => {
         primaryCursor: primaryCursorASC,
         cursors: [slugCursorDefault],
       });
-      expect(cursor.relational.where()).toBeUndefined();
-      expect(cursor.relational.where(null)).toBeUndefined();
-      expect(cursor.relational.where("")).toBeUndefined();
+      expect(cursor.relations.where()).toBeUndefined();
+      expect(cursor.relations.where(null)).toBeUndefined();
+      expect(cursor.relations.where("")).toBeUndefined();
     });
 
     test("builds RQB v2 matrix for previous object", () => {
@@ -1569,7 +1569,7 @@ describe("generateCursor", () => {
         primaryCursor: primaryCursorDefault,
         cursors: [slugCursorDefault],
       });
-      expect(cursor.relational.where({ id: 5, firstName: "slug-05" })).toEqual({
+      expect(cursor.relations.where({ id: 5, firstName: "slug-05" })).toEqual({
         OR: [
           { firstName: { gt: "slug-05" } },
           {
@@ -1595,11 +1595,11 @@ describe("generateCursor", () => {
       });
       expect(token).toBeTypeOf("string");
 
-      const expected = cursor.relational.where({
+      const expected = cursor.relations.where({
         id: 4,
         firstName: "slug-04",
       });
-      expect(cursor.relational.where(token)).toEqual(expected);
+      expect(cursor.relations.where(token)).toEqual(expected);
     });
 
     test("uses lt for desc cursor fields", () => {
@@ -1608,7 +1608,7 @@ describe("generateCursor", () => {
         cursors: [nameCursorDESC],
       });
       expect(
-        cursor.relational.where({
+        cursor.relations.where({
           id: 7,
           lastName: "zeta",
           middleName: "middleName-04",
@@ -1633,7 +1633,7 @@ describe("generateCursor", () => {
         cursors: [slugCursorDefault, nameCursorDESC],
       });
       expect(
-        cursor.relational.where({
+        cursor.relations.where({
           id: 2,
           firstName: "john",
           middleName: "adam",
