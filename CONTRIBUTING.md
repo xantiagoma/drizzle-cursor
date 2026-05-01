@@ -45,6 +45,7 @@ prerelease/beta/* branch push -> prerelease publish -> npm @beta
   - Generates prerelease versions before publishing to avoid version collisions:
     - `alpha`: snapshot versions such as `0.0.0-alpha-20260501011439`
     - `beta`: target-version timestamps such as `0.6.0-beta.20260501011439`
+  - Uses the generated `CHANGELOG.md` entry as GitHub prerelease notes
 
 ### Branch naming convention for prereleases
 
