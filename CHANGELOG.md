@@ -1,5 +1,18 @@
 # drizzle-cursor
 
+## 0.7.0
+
+### Minor Changes
+
+- Add SQL expression cursor support
+
+  Allow raw Drizzle `sql` expressions as cursor values alongside table columns, enabling pagination by computed fields (e.g. `upper(name)`, concatenated strings, or any DB-evaluable expression).
+
+  - `Cursor` is now a discriminated union of `TableCursor` (schema) and `SQLCursor` (sql) — both exported as named types
+  - `CursorConfig<C>` is generic; cursor types are fully inferred at call sites with no manual annotations
+  - `cursor.relations.orderBy` returns `() => SQL[]` when any cursor uses `sql`, automatically inferred via `ConfigHasSqlCursor<C>` conditional type
+  - `cursor.relations.where()` builds `{ RAW: () => SQL }` conditions for SQL expression cursors
+
 ## 0.6.0
 
 ### Minor Changes
