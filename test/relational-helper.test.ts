@@ -9,7 +9,7 @@ const users = sqliteTable("users", {
   slug: text("slug"),
 });
 
-describe("relational query compatibility", () => {
+describe("relational helper contract", () => {
   test("checks cursor.relational helper values", () => {
     const cursor = generateCursor({
       primaryCursor: { key: "id", schema: users.id, order: "ASC" },
