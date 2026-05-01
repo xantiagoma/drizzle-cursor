@@ -1,6 +1,6 @@
 import { SQL, and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 
-import type { CursorConfig } from "./types";
+import type { CursorConfig, RelationalOrderBy, RelationalWhere } from "./types";
 import {
   generateSubArrays,
   decoder as _decoder,
@@ -67,12 +67,63 @@ export const generateCursor = (
     serialize = _serialize,
   } = options ?? {};
 
+  const allCursors = [...cursors, primaryCursor];
   const orderBy: Array<SQL> = [];
-  for (const { order = "ASC", schema } of [...cursors, primaryCursor]) {
+  const relationalOrderBy: RelationalOrderBy = {};
+
+  const isColumn = (schema: unknown): schema is Parameters<typeof asc>[0] =>
+    typeof schema === "object" && schema !== null;
+
+  const assertColumn = (schema: unknown, key?: string) => {
+    if (!isColumn(schema)) {
+      throw new TypeError(
+        `Invalid cursor schema for key "${key ?? "unknown"}": expected a Drizzle column instance`,
+      );
+    }
+    return schema;
+  };
+
+  for (const { order = "ASC", key, schema } of allCursors) {
     const fn = order === "ASC" ? asc : desc;
-    const sql = fn(schema);
-    orderBy.push(sql);
+    orderBy.push(fn(assertColumn(schema, key)));
+    relationalOrderBy[key] = order === "ASC" ? "asc" : "desc";
   }
+
+  const relational: { orderBy: RelationalOrderBy; where: (lastPreviousItemData?: Record<string, unknown> | string | null) => RelationalWhere | { OR: RelationalWhere[] } | undefined } = {
+    orderBy: relationalOrderBy,
+    where: (lastPreviousItemData?: Record<string, unknown> | string | null) => {
+      if (!lastPreviousItemData) {
+        return undefined;
+      }
+
+      const data =
+        typeof lastPreviousItemData === "string"
+          ? parse(config, lastPreviousItemData, decoder, parser)
+          : lastPreviousItemData;
+
+      if (!data) {
+        return undefined;
+      }
+
+      const matrix = generateSubArrays(allCursors);
+
+      const ors: Array<RelationalWhere> = [];
+
+      for (const possibilities of matrix) {
+        const clause: RelationalWhere = {};
+        for (const cursor of possibilities) {
+          const lastValue = cursor === possibilities?.at(-1);
+          const { order = "ASC", key } = cursor;
+          clause[key] = lastValue
+            ? { [order === "ASC" ? "gt" : "lt"]: data[key] }
+            : { eq: data[key] };
+        }
+        ors.push(clause);
+      }
+
+      return { OR: ors };
+    },
+  };
 
   return {
     orderBy,
@@ -91,7 +142,7 @@ export const generateCursor = (
         return undefined;
       }
 
-      const matrix = generateSubArrays([...cursors, primaryCursor]);
+      const matrix = generateSubArrays(allCursors);
 
       const ors: Array<SQL> = [];
       for (const posibilities of matrix) {
@@ -100,10 +151,10 @@ export const generateCursor = (
           const lastValue = cursor === posibilities?.at(-1);
           const { order = "ASC", schema, key } = cursor;
           const fn = order === "ASC" ? gt : lt;
-          const sql = !lastValue
-            ? eq(schema, data[key])
-            : fn(schema, data[key]);
-          ands.push(sql);
+          const whereSql = !lastValue
+            ? eq(assertColumn(schema, key), data[key])
+            : fn(assertColumn(schema, key), data[key]);
+          ands.push(whereSql);
         }
         const _and = and(...ands);
         if (!_and) {
@@ -115,6 +166,8 @@ export const generateCursor = (
 
       return where;
     },
+
+    relational: relational,
 
     parse: (cursor: string | null) => parse(config, cursor, decoder, parser),
 

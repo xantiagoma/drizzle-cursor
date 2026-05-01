@@ -1,6 +1,7 @@
-import type { AnyColumn } from "drizzle-orm";
+export type Cursor = { order?: "ASC" | "DESC"; key: string; schema: unknown };
 
-export type Cursor = { order?: "ASC" | "DESC"; key: string; schema: AnyColumn };
+export type RelationalOrderBy = Record<string, "asc" | "desc">;
+export type RelationalWhere = Record<string, unknown>;
 
 export type CursorConfig = {
   primaryCursor: Cursor;
