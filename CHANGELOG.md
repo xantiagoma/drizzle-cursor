@@ -1,5 +1,19 @@
 # drizzle-cursor
 
+## v0.7.1
+
+[compare changes](https://github.com/xantiagoma/drizzle-cursor/compare/drizzle-cursor@0.7.0...v0.7.1)
+
+### 🏡 Chore
+
+- Add logo, badges, and See Also section to README ([a9dfff8](https://github.com/xantiagoma/drizzle-cursor/commit/a9dfff8))
+- Add changeset for logo/badges patch ([f325330](https://github.com/xantiagoma/drizzle-cursor/commit/f325330))
+- Replace changesets with changelogen ([001b9ce](https://github.com/xantiagoma/drizzle-cursor/commit/001b9ce))
+
+### ❤️ Contributors
+
+- Santiago Montoya ([@xantiagoma](https://github.com/xantiagoma))
+
 ## 0.7.0
 
 ### Minor Changes
