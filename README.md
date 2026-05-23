@@ -1,6 +1,22 @@
-# drizzle-cursor
+<p align="center">
+  <img src="./assets/logo.png" alt="drizzle-cursor" width="180" />
+</p>
 
-Utils to generate cursor based pagination for [`drizzle-orm`](https://github.com/drizzle-team/drizzle-orm)
+<h1 align="center">drizzle-cursor</h1>
+
+<p align="center">
+  Cursor-based pagination for <a href="https://github.com/drizzle-team/drizzle-orm">Drizzle ORM</a>.<br/>
+  Supports any number of cursors, custom serialization, SQL expressions, and both query-builder and relational query APIs.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/drizzle-cursor"><img src="https://img.shields.io/npm/v/drizzle-cursor?color=blue" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/drizzle-cursor"><img src="https://img.shields.io/npm/dm/drizzle-cursor" alt="npm downloads" /></a>
+  <a href="https://github.com/xantiagoma/drizzle-cursor/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/drizzle-cursor" alt="license" /></a>
+  <a href="https://github.com/xantiagoma/drizzle-cursor"><img src="https://img.shields.io/github/stars/xantiagoma/drizzle-cursor?style=social" alt="stars" /></a>
+</p>
+
+---
 
 | :zap: Supports *any* number of cursors.  |
 |------------------------------------------|
@@ -432,6 +448,10 @@ Submit an Issue with a minimal reproducible example.
 > PRs are welcome
 
 Maintainers: release and prerelease workflow lives in `CONTRIBUTING.md`.
+
+## See Also
+
+- [drizzle-audit](https://github.com/xantiagoma/drizzle-audit) — Configurable audit logging for Drizzle ORM (by the same author)
 
 ## License
 
