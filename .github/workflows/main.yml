@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22
           cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run lint
       - run: pnpm exec vitest run
       - run: pnpm run build
@@ -37,6 +37,6 @@ jobs:
         with:
           node-version: 22
           cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm add -w drizzle-orm@${{ matrix.drizzle-version }} -D
       - run: pnpm exec vitest run
