@@ -1,5 +1,17 @@
 # drizzle-cursor
 
+## v0.7.2
+
+[compare changes](https://github.com/xantiagoma/drizzle-cursor/compare/v0.7.1...v0.7.2)
+
+### 🩹 Fixes
+
+- Add files field to package.json to exclude tests from npm ([28bb2cc](https://github.com/xantiagoma/drizzle-cursor/commit/28bb2cc))
+
+### ❤️ Contributors
+
+- Santiago Montoya ([@xantiagoma](https://github.com/xantiagoma))
+
 ## v0.7.1
 
 [compare changes](https://github.com/xantiagoma/drizzle-cursor/compare/drizzle-cursor@0.7.0...v0.7.1)

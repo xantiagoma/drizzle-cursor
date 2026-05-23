@@ -1,6 +1,6 @@
 {
   "name": "drizzle-cursor",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Utils for Drizzle ORM cursor based pagination",
   "files": [
     "dist",
