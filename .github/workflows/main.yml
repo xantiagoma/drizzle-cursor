@@ -8,13 +8,13 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - uses: actions/setup-node@v3
+          version: 9
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
@@ -29,13 +29,13 @@ jobs:
       matrix:
         drizzle-version: ["0.45.2", "beta"]
     steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - uses: actions/setup-node@v3
+          version: 9
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm add -w drizzle-orm@${{ matrix.drizzle-version }} -D
