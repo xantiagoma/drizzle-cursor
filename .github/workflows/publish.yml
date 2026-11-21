@@ -1,21 +1,38 @@
 name: Publish
 
+# Publishes to npm when a version tag is pushed (`pnpm run release` bumps the version from
+# conventional commits, writes CHANGELOG.md, commits, tags, and `git push --follow-tags`
+# triggers this — see CONTRIBUTING.md).
+#
+# Auth is npm trusted publishing (OIDC): no NPM_TOKEN secret. The trust is configured on npmjs.com
+# for this repo and this workflow file
+# (`npm trust github drizzle-cursor --repo xantiagoma/drizzle-cursor --file publish.yml`), and needs
+# npm >= 11.5.1 (Node 24 ships it).
+#
+# Re-publish an existing tag (e.g. after a failed publish): run this workflow manually with `tag`
+# set — `gh workflow run publish.yml -f tag=v0.7.2`.
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish (e.g. v0.7.2)"
+        required: true
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      id-token: write
+      contents: write # create the GitHub release
+      id-token: write # npm trusted publishing + provenance
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -23,18 +40,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run build
 
       - name: Publish to npm
-        run: npm publish --provenance --access public || npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
       - name: Create GitHub Release
-        run: gh release create ${{ github.ref_name }} --generate-notes || echo "Release already exists"
+        run: gh release create "$TAG" --generate-notes || echo "Release already exists"
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
